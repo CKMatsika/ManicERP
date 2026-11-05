@@ -108,6 +108,19 @@ class PortalAccessTest extends TestCase
         $this->get('/portal/accounts/'.$customer['account']->id)->assertStatus(404);
     }
 
+    public function test_citizen_portal_pages_render(): void
+    {
+        $customer = $this->makeCustomerRecord();
+        $result = app(AccountLinkService::class)->request($this->citizen, $customer['account']->account_number);
+        app(AccountLinkService::class)->verify($this->citizen, $result['link'], $result['code']);
+
+        foreach (['/portal', '/portal/pay', '/portal/link', '/portal/requests'] as $page) {
+            $response = $this->get($page);
+            $this->assertSame(200, $response->status(), "Portal page [{$page}] returned {$response->status()}");
+            $this->assertNotEmpty($response->viewData('page'));
+        }
+    }
+
     /** @return array{party: Party, property: Property, account: CustomerAccount} */
     private function makeCustomerRecord(): array
     {

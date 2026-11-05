@@ -224,7 +224,7 @@ php artisan test
 
 Command: `php artisan test` from `backend/`, PostgreSQL 16, 2026-11-05.
 
-Result: **71 tests passed, 248 assertions, 0 failures** (62 seconds).
+Result: **75 tests passed, 296 assertions, 0 failures** (28 seconds).
 
 Pint formatting check: run `./vendor/bin/pint` (applied) and
 `./vendor/bin/pint --test` for CI.

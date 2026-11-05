@@ -68,8 +68,16 @@ class LoginController extends Controller
             ->contains(fn ($membership) => (bool) $membership->role?->requires_mfa);
 
         if ($requiresMfa) {
-            $request->session()->put('mfa_pending_user', $user->getKey());
             $request->session()->forget('mfa_verified_user');
+
+            // Users who have not enrolled an authenticator go straight to
+            // enrolment; only enrolled users can answer a challenge.
+            if (! $user->hasMfaEnabled()) {
+                return redirect()->route('security.mfa.setup')
+                    ->with('warning', 'Your role requires multi-factor authentication. Enrol an authenticator to continue.');
+            }
+
+            $request->session()->put('mfa_pending_user', $user->getKey());
 
             return redirect()->route('security.mfa.challenge');
         }

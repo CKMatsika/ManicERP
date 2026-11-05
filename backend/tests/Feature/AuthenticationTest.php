@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Platform\Models\Council;
+use App\Modules\Platform\Services\TotpService;
 use Tests\Concerns\BuildsMunicipalContext;
 use Tests\TestCase;
 
@@ -56,10 +57,34 @@ class AuthenticationTest extends TestCase
         $this->makeMembership($user, $this->council, $role);
 
         $this->post('/login', ['email' => 'privileged@test.local', 'password' => 'Secret!12345'])
-            ->assertRedirect('/security/mfa/challenge');
+            ->assertRedirect('/security/mfa/setup');
 
         $this->assertAuthenticatedAs($user);
         $this->get('/dashboard')->assertRedirect('/security/mfa/setup');
+        $this->get('/security/mfa/setup')->assertOk();
+    }
+
+    public function test_an_enrolled_privileged_user_is_challenged_for_a_code(): void
+    {
+        $user = $this->makeUser('mfa@test.local');
+        $role = $this->makeRole($this->council, 'finance_approver', ['*'], requiresMfa: true);
+        $this->makeMembership($user, $this->council, $role);
+
+        $service = app(TotpService::class);
+        $secret = $service->generateSecret();
+        $user->forceFill(['mfa_secret' => $secret, 'mfa_confirmed_at' => now()])->save();
+
+        $this->post('/login', ['email' => 'mfa@test.local', 'password' => 'Secret!12345'])
+            ->assertRedirect('/security/mfa/challenge');
+
+        $this->get('/security/mfa/challenge')->assertOk();
+
+        $this->get('/dashboard')->assertRedirect('/security/mfa/challenge');
+
+        $this->post('/security/mfa/challenge', ['code' => $service->code($secret)])
+            ->assertRedirect('/dashboard');
+
+        $this->get('/dashboard')->assertOk();
     }
 
     public function test_a_cashier_cannot_post_journals(): void

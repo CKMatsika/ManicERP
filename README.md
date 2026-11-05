@@ -83,7 +83,7 @@ cd backend
 php artisan test
 ```
 
-Last full run in this environment: **71 tests, 248 assertions, all passing**
+Last full run in this environment: **75 tests, 296 assertions, all passing**
 (plus the Flutter model tests, which cannot run without a Dart SDK). The suite
 covers balanced posting, period locks, reversal linkage, idempotency, chart
 validation and leading zeros, separation of duties on billing approval, billing
