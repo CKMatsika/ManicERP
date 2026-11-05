@@ -1,0 +1,158 @@
+<?php
+
+/*
+|--------------------------------------------------------------------------
+| Module manifests
+|--------------------------------------------------------------------------
+|
+| Every module declares its identity, version, dependencies, permissions,
+| routes, jobs, settings and availability. Core identity, audit and
+| accounting safeguards cannot be disabled. Activation state is stored
+| per council in council_modules and enforced server-side (routes, jobs,
+| integrations), not only in navigation.
+|
+*/
+return [
+    'modules' => [
+        'platform.core' => [
+            'name' => 'Platform core',
+            'version' => '1.0.0',
+            'description' => 'Council directory, identity, memberships, audit, documents and security controls.',
+            'dependencies' => [],
+            'permissions' => [
+                'platform.councils.manage',
+                'platform.users.manage',
+                'platform.modules.manage',
+                'platform.audit.view',
+                'platform.settings.manage',
+                'platform.documents.view',
+            ],
+            'locks' => ['identity', 'audit', 'security'],
+            'core' => true,
+            'available' => true,
+        ],
+        'accounting' => [
+            'name' => 'Accounting and IPSAS reporting',
+            'version' => '0.3.0',
+            'description' => 'Chart of accounts, dimensions, double-entry journals, periods and financial reports.',
+            'dependencies' => ['platform.core'],
+            'permissions' => [
+                'accounting.chart.view',
+                'accounting.chart.manage',
+                'accounting.chart.approve',
+                'accounting.journal.view',
+                'accounting.journal.create',
+                'accounting.journal.post',
+                'accounting.journal.reverse',
+                'accounting.period.lock',
+                'accounting.reports.view',
+                'accounting.policy.manage',
+            ],
+            'locked_permissions' => ['accounting.journal.post', 'accounting.period.lock'],
+            'core' => false,
+            'available' => true,
+        ],
+        'revenue' => [
+            'name' => 'Revenue, property and utilities',
+            'version' => '0.3.0',
+            'description' => 'Parties, properties, accounts, tariffs, readings, billing, cashiering, payments and reconciliation.',
+            'dependencies' => ['platform.core', 'accounting'],
+            'permissions' => [
+                'revenue.party.view',
+                'revenue.party.manage',
+                'revenue.property.view',
+                'revenue.property.manage',
+                'revenue.account.view',
+                'revenue.account.manage',
+                'revenue.connection.view',
+                'revenue.connection.manage',
+                'revenue.reading.capture',
+                'revenue.reading.confirm',
+                'revenue.tariff.view',
+                'revenue.tariff.manage',
+                'revenue.tariff.approve',
+                'revenue.billing.preview',
+                'revenue.billing.approve',
+                'revenue.cashier.open',
+                'revenue.cashier.close',
+                'revenue.payment.capture',
+                'revenue.payment.verify',
+                'revenue.payment.reverse',
+                'revenue.reconciliation.manage',
+                'revenue.reports.view',
+            ],
+            'core' => false,
+            'available' => true,
+        ],
+        'customer' => [
+            'name' => 'Citizen portal and customer service',
+            'version' => '0.2.0',
+            'description' => 'Citizen accounts, account linking, statements and service requests.',
+            'dependencies' => ['platform.core', 'revenue'],
+            'permissions' => [
+                'customer.portal.access',
+                'customer.link.request',
+                'customer.link.verify',
+                'customer.service_request.create',
+                'customer.service_request.manage',
+            ],
+            'core' => false,
+            'available' => true,
+        ],
+        'licensing' => [
+            'name' => 'Licensing and permits',
+            'version' => '0.0.1',
+            'description' => 'Configurable licence types, applications, inspections, issuance and renewal.',
+            'dependencies' => ['platform.core', 'revenue', 'customer'],
+            'permissions' => [
+                'licensing.types.manage',
+                'licensing.applications.review',
+                'licensing.applications.approve',
+                'licensing.certificates.issue',
+            ],
+            'core' => false,
+            'available' => false,
+        ],
+        'procurement' => [
+            'name' => 'Procurement and payables',
+            'version' => '0.0.1',
+            'description' => 'Requisitions, sourcing, purchase orders, receipts, matching and supplier portal.',
+            'dependencies' => ['platform.core', 'accounting'],
+            'permissions' => [
+                'procurement.supplier.manage',
+                'procurement.requisition.manage',
+                'procurement.purchase_order.approve',
+                'procurement.payment.approve',
+            ],
+            'core' => false,
+            'available' => false,
+        ],
+        'assets' => [
+            'name' => 'Assets and engineering',
+            'version' => '0.0.1',
+            'description' => 'Asset registers, components, depreciation, maintenance and work orders.',
+            'dependencies' => ['platform.core', 'accounting'],
+            'permissions' => ['assets.register.manage', 'assets.maintenance.manage', 'assets.disposal.approve'],
+            'core' => false,
+            'available' => false,
+        ],
+        'hr' => [
+            'name' => 'Human resources and payroll',
+            'version' => '0.0.1',
+            'description' => 'Establishment, positions, leave, payroll and statutory deduction tables.',
+            'dependencies' => ['platform.core', 'accounting'],
+            'permissions' => ['hr.employee.manage', 'hr.payroll.run', 'hr.payroll.approve'],
+            'core' => false,
+            'available' => false,
+        ],
+        'ai' => [
+            'name' => 'AI assistance',
+            'version' => '0.1.0',
+            'description' => 'Permission-aware, source-cited assistance. Disabled by default; never authoritative.',
+            'dependencies' => ['platform.core'],
+            'permissions' => ['ai.assistant.use', 'ai.assistant.manage'],
+            'core' => false,
+            'available' => true,
+        ],
+    ],
+];

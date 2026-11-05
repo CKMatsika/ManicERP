@@ -1,0 +1,97 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Modules\Platform\Models\Council;
+use Tests\Concerns\BuildsMunicipalContext;
+use Tests\TestCase;
+
+class AuthenticationTest extends TestCase
+{
+    use BuildsMunicipalContext;
+
+    private Council $council;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->council = $this->makeCouncil();
+    }
+
+    public function test_a_guest_is_redirected_to_login(): void
+    {
+        $this->get('/dashboard')->assertRedirect('/login');
+    }
+
+    public function test_a_staff_user_can_sign_in(): void
+    {
+        $user = $this->makeUser('login@test.local');
+        $role = $this->makeRole($this->council, 'revenue_clerk', ['revenue.account.view']);
+        $this->makeMembership($user, $this->council, $role);
+
+        $response = $this->post('/login', ['email' => 'login@test.local', 'password' => 'Secret!12345']);
+
+        $response->assertRedirect('/home');
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_invalid_credentials_are_rejected(): void
+    {
+        $user = $this->makeUser('bad@test.local');
+        $role = $this->makeRole($this->council, 'revenue_clerk', ['revenue.account.view']);
+        $this->makeMembership($user, $this->council, $role);
+
+        $this->from('/login')->post('/login', ['email' => 'bad@test.local', 'password' => 'wrong-password'])
+            ->assertRedirect('/login')
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+    }
+
+    public function test_a_privileged_role_is_challenged_for_multi_factor_authentication(): void
+    {
+        $user = $this->makeUser('privileged@test.local');
+        $role = $this->makeRole($this->council, 'council_admin', ['*'], requiresMfa: true);
+        $this->makeMembership($user, $this->council, $role);
+
+        $this->post('/login', ['email' => 'privileged@test.local', 'password' => 'Secret!12345'])
+            ->assertRedirect('/security/mfa/challenge');
+
+        $this->assertAuthenticatedAs($user);
+        $this->get('/dashboard')->assertRedirect('/security/mfa/setup');
+    }
+
+    public function test_a_cashier_cannot_post_journals(): void
+    {
+        $user = $this->makeUser('cashier@test.local');
+        $role = $this->makeRole($this->council, 'cashier', ['revenue.payment.capture', 'revenue.cashier.open']);
+        $membership = $this->makeMembership($user, $this->council, $role);
+
+        $this->actingAsStaff($user, $this->council, $membership);
+
+        $this->get('/accounting/journals')->assertStatus(403);
+        $this->post('/accounting/journals', [])->assertStatus(403);
+    }
+
+    public function test_an_unauthorised_staff_member_cannot_manage_modules(): void
+    {
+        $user = $this->makeUser('clerk2@test.local');
+        $role = $this->makeRole($this->council, 'revenue_clerk', ['revenue.account.view']);
+        $membership = $this->makeMembership($user, $this->council, $role);
+
+        $this->actingAsStaff($user, $this->council, $membership);
+
+        $this->get('/admin/modules')->assertStatus(403);
+    }
+
+    public function test_a_user_without_membership_cannot_sign_in(): void
+    {
+        $this->makeUser('nomember@test.local');
+
+        $this->post('/login', ['email' => 'nomember@test.local', 'password' => 'Secret!12345'])
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+    }
+}

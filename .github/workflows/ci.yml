@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (PHP 8.4, PostgreSQL 16)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: manicerp_central
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: pdo_pgsql, pgsql, intl, bcmath, mbstring, zip, gd, xml
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan package:discover
+
+      - name: Create test databases
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h 127.0.0.1 -p 5433 -U postgres -d manicerp_central -c "CREATE DATABASE manicerp_test_central"
+          psql -h 127.0.0.1 -p 5433 -U postgres -d manicerp_central -c "CREATE DATABASE manicerp_test_demo"
+          psql -h 127.0.0.1 -p 5433 -U postgres -d manicerp_central -c "CREATE DATABASE manicerp_test_demo_b"
+
+      - name: Migrate central schema
+        run: php artisan migrate --path=database/migrations/central --force
+
+      - name: Run the test suite
+        run: php artisan test
+
+      - name: Check formatting
+        run: ./vendor/bin/pint --test
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build assets
+        run: pnpm run build
