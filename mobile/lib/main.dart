@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'core/api_client.dart';
@@ -6,11 +7,11 @@ import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 
 /// API base URL. Pass with --dart-define=API_BASE_URL=https://erp.example.org
-/// The default targets the Android emulator's host loopback.
-const String apiBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://10.0.2.2:8000',
-);
+/// Defaults to localhost for Web, and Android emulator loopback (10.0.2.2) for mobile.
+const String _configuredApiBaseUrl = String.fromEnvironment('API_BASE_URL');
+final String apiBaseUrl = _configuredApiBaseUrl.isNotEmpty
+    ? _configuredApiBaseUrl
+    : (kIsWeb ? 'http://127.0.0.1:8000' : 'http://10.0.2.2:8000');
 
 void main() {
   runApp(const ManicErpApp());
@@ -69,8 +70,20 @@ class _ManicErpAppState extends State<ManicErpApp> {
       title: 'ManicERP',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F766E)),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF0D5C3A),
+          primary: const Color(0xFF0D5C3A),
+          secondary: const Color(0xFFD4A373),
+        ),
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF8FAF8),
+        appBarTheme: const AppBarTheme(
+          centerTitle: false,
+          elevation: 0,
+        ),
+        cardTheme: const CardThemeData(
+          elevation: 1,
+        ),
         visualDensity: VisualDensity.standard,
       ),
       home: _loading

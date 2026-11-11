@@ -53,8 +53,8 @@ class AuditLogger
 
             $previous = AuditEvent::query()->orderByDesc('chain_index')->first();
             $occurredAt = now();
-            $user = Auth::user();
             $membership = $this->tenants->membership();
+            $user = $membership ? Auth::user() : null;
 
             $payload = [
                 'chain_index' => $index,

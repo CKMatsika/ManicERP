@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../models/models.dart';
 import 'pay_screen.dart';
+import 'payment_plan_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key, required this.api, required this.account});
@@ -62,6 +63,26 @@ class _AccountScreenState extends State<AccountScreen> {
                     Text(widget.account.outstandingLabel, style: Theme.of(context).textTheme.headlineSmall),
                     const SizedBox(height: 4),
                     Text(widget.account.property ?? 'No linked property', style: const TextStyle(fontSize: 12)),
+                    if (widget.account.outstandingMinor > 0) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            await Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => PaymentPlanScreen(api: widget.api, account: widget.account),
+                            ));
+                            _refresh();
+                          },
+                          icon: const Icon(Icons.shield_outlined, size: 16),
+                          label: const Text('Municipal Debt Relief & Payment Plan (s279)'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF0D5C3A),
+                            side: const BorderSide(color: Color(0xFF0D5C3A)),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

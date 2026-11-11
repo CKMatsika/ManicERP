@@ -24,9 +24,8 @@ available. Permissions listed here are the only permissions
 permissions.
 
 Activation state lives in central `council_modules` and is enforced by
-`ModuleRegistry` and the `module:` route middleware. Jobs and integrations must
-also call `ModuleRegistry::ensureEnabled()`; no production tenant job exists yet,
-so that rule is documented rather than demonstrated.
+`ModuleRegistry` and the `module:` route middleware. Tenant jobs recheck the
+active council and module before doing work.
 
 ## Dependency graph
 
@@ -35,7 +34,7 @@ platform.core  (identity, audit, documents, council directory)
   ├── accounting
   │     ├── revenue
   │     │     └── customer
-  │     │           └── licensing (unavailable)
+  │     │           └── licensing (implemented slice; demo only until council configuration is approved)
   │     ├── procurement (unavailable)
   │     └── assets (unavailable)
   ├── hr (unavailable; depends on accounting)
@@ -57,6 +56,7 @@ Rules enforced by `ModuleRegistry::setEnabled`:
 | `accounting` | 0.3.0 | Implemented and tested (core accounting, not full IPSAS statements) | Posting, reversal, period, trial balance, chart import and standards tests |
 | `revenue` | 0.3.0 | Implemented and tested (rates/water/refuse; rental configured but not exercised) | Billing, payment, cashier, bank reconciliation tests |
 | `customer` | 0.2.0 | Implemented and tested (portal linking, bills, payments, statements, requests) | Portal access tests |
+| `licensing` | 0.1.0 | Implemented and tested slice; production configurations require council authority and approval; delivery integrations unavailable | Licensing workflow tests; browser/API routes and Flutter source |
 | `ai` | 0.1.0 | Partially implemented; retrieval and gating tested, provider generation unverified | Policy assistant tests (disabled/budget/no-source paths) |
 
 ## Declared but not implemented
@@ -67,7 +67,6 @@ service pretends to deliver them.
 
 | Module | Planned scope | Dependencies |
 | --- | --- | --- |
-| `licensing` | Configurable licence types, applications, inspections, issuance, renewal, public verification | customer, revenue |
 | `procurement` | Supplier onboarding, requisitions, tenders, purchase orders, receipts, matching, payments | accounting |
 | `assets` | Asset/components, depreciation, impairment, revaluation, disposal, maintenance, work orders | accounting |
 | `hr` | Establishment, positions, leave, payroll, statutory tables, payslips, GL reconciliation | accounting |

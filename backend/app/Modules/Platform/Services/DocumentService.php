@@ -63,9 +63,17 @@ class DocumentService
 
         Storage::disk(config('manicerp.documents.disk'))->putFileAs(dirname($path), $file, basename($path));
 
+        $originalName = str_replace('\\', '/', $file->getClientOriginalName());
+        $originalName = basename($originalName);
+        $originalName = preg_replace('/[\x00-\x1F\x7F]/u', '', $originalName) ?? '';
+        $originalName = trim($originalName, " .\t\n\r\0\x0B");
+        if ($originalName === '') {
+            $originalName = 'procurement-document.'.$extension;
+        }
+
         $document = Document::create([
             'id' => $id,
-            'original_name' => Str::limit($file->getClientOriginalName(), 200, ''),
+            'original_name' => Str::limit($originalName, 200, ''),
             'path' => $path,
             'disk' => config('manicerp.documents.disk'),
             'mime_type' => $mime,
@@ -108,6 +116,31 @@ class DocumentService
 
         return $disk->download($document->path, $document->original_name, [
             'Content-Type' => $document->mime_type,
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store, max-age=0',
+        ]);
+    }
+
+    public function preview(Document $document): StreamedResponse
+    {
+        if (! in_array($document->mime_type, ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'], true)) {
+            abort(415, 'This file type can be downloaded but not previewed in the browser.');
+        }
+        $disk = Storage::disk($document->disk);
+        if (! $disk->exists($document->path)) {
+            abort(404, 'The stored document could not be found.');
+        }
+        $this->audit->record(action: 'document.previewed', subject: $document, module: 'platform.core');
+
+        return response()->stream(function () use ($disk, $document): void {
+            $stream = $disk->readStream($document->path);
+            if (is_resource($stream)) {
+                fpassthru($stream);
+                fclose($stream);
+            }
+        }, 200, [
+            'Content-Type' => $document->mime_type,
+            'Content-Disposition' => 'inline; filename="'.addcslashes(basename($document->original_name), '"\\').'"',
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, no-store, max-age=0',
         ]);

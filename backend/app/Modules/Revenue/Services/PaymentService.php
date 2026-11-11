@@ -7,6 +7,7 @@ use App\Modules\Accounting\Services\PostingService;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Platform\Services\NumberSequenceService;
 use App\Modules\Revenue\Contracts\PaymentGateway;
+use App\Modules\Revenue\Gateways\PaynowGateway;
 use App\Modules\Revenue\Gateways\SandboxGateway;
 use App\Modules\Revenue\Models\Bill;
 use App\Modules\Revenue\Models\CashierSession;
@@ -37,6 +38,7 @@ class PaymentService
     {
         return match ($name) {
             'sandbox' => new SandboxGateway,
+            'paynow' => new PaynowGateway,
             default => throw new \DomainException("Payment gateway [{$name}] has no verified integration. Use the sandbox adapter until API access is documented."),
         };
     }
@@ -190,7 +192,25 @@ class PaymentService
                 'status' => 'issued',
             ]);
 
-            $this->allocations->allocate($payment);
+            $targetBillId = $locked->metadata['bill_id'] ?? null;
+            $this->allocations->allocate($payment, null, is_string($targetBillId) ? $targetBillId : null);
+
+            // If this payment was for a structured payment plan installment under Urban Councils Act s279
+            if (! empty($locked->metadata['installment_id'])) {
+                $inst = \App\Modules\Revenue\Models\PaymentPlanInstallment::find($locked->metadata['installment_id']);
+                if ($inst) {
+                    $inst->update([
+                        'status' => 'paid',
+                        'paid_at' => now(),
+                        'paid_amount_minor' => $payment->amount_minor,
+                        'payment_id' => $payment->id,
+                    ]);
+                    $plan = $inst->plan;
+                    if ($plan && $plan->installments()->where('status', '!=', 'paid')->count() === 0) {
+                        $plan->update(['status' => 'completed']);
+                    }
+                }
+            }
 
             $this->postReceiptJournal($payment);
 
@@ -291,8 +311,8 @@ class PaymentService
 
         foreach ($allocations as $allocation) {
             $bill = Bill::find($allocation->bill_id);
-            $chargeType = $bill?->lines()->value('charge_type') ?? 'rates';
-            $receivable = config("accounting.receivables.{$chargeType}", config('accounting.receivables.rates'));
+            $chargeType = $bill?->service_type ?? 'rates';
+            $receivable = $bill?->calculation_snapshot['revenue_policies'][0]['debit'] ?? config("accounting.receivables.{$chargeType}", config('accounting.receivables.rates'));
             $credits[$receivable] = ($credits[$receivable] ?? 0) + (int) $allocation->amount_minor;
             $allocated += (int) $allocation->amount_minor;
         }

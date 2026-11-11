@@ -59,6 +59,12 @@ abstract class TestCase extends BaseTestCase
             return;
         }
 
+        foreach ([config('database.connections.pgsql.database'), $this->tenantDatabase(), $this->secondaryTenantDatabase()] as $database) {
+            if (! in_array($database, ['manicerp_test_central', 'manicerp_test_demo', 'manicerp_test_demo_b'], true)) {
+                throw new \RuntimeException('Refusing destructive test setup outside dedicated ManicERP test databases.');
+            }
+        }
+
         Artisan::call('migrate:fresh', [
             '--database' => 'pgsql',
             '--path' => 'database/migrations/central',

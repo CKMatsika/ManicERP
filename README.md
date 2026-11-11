@@ -12,9 +12,10 @@ Zimbabwe configuration is implemented.
 > immutable journals and reversals, property/party/account master data,
 > effective-dated tariffs, metered and valuation billing, cashier receipts,
 > server-verified sandbox payments, allocation, bank reconciliation, a citizen
-> portal and a first source-cited AI assistant. Procurement, stores, assets,
-> fleet, HR/payroll, land allocation, licensing and full IPSAS disclosures are
-> **not implemented** and their modules are marked unavailable.
+> portal, source-cited AI guidance and a demonstration municipal licensing and
+> renewal workflow. Procurement, stores, assets, fleet, HR/payroll, land
+> allocation and full IPSAS disclosures remain **unavailable**. Licensing
+> demonstrations are not approved council or statutory configurations.
 >
 > Read [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) before
 > making any claim about completeness.
@@ -72,9 +73,10 @@ php artisan serve
 Open <http://127.0.0.1:8000>. Demonstration sign-ins are printed by
 `manicerp:demo`; see [docs/SETUP-WINDOWS.md](docs/SETUP-WINDOWS.md).
 
-For a second council, `php artisan council:provision` is available in the
-architecture documentation but no CLI command is exposed yet; the demo command
-and the provisioner service are the supported path.
+For a new council, `php artisan council:provision CODE --name="Council Name"`
+provisions a dedicated database. For isolated local acceptance, follow the
+guarded runner in [docs/SETUP-WINDOWS.md](docs/SETUP-WINDOWS.md); it never resets
+the operational or DEMO databases.
 
 ## Tests
 
@@ -83,8 +85,8 @@ cd backend
 php artisan test
 ```
 
-Last full run in this environment: **75 tests, 296 assertions, all passing**
-(plus the Flutter model tests, which cannot run without a Dart SDK). The suite
+Current full backend run in this environment: **146 tests, 751 assertions, all passing**
+(Flutter model tests cannot run without a Dart SDK). The suite
 covers balanced posting, period locks, reversal linkage, idempotency, chart
 validation and leading zeros, separation of duties on billing approval, billing
 snapshots and duplicate prevention, signature/replay protection for payment
@@ -116,8 +118,9 @@ chart and posting rules are approved.
 
 - No official Ministry of Finance or council chart of accounts was obtained.
   The active chart contains illustrative codes only.
-- No IPSAS statement, Zimbabwe Treasury guidance, PAAB guidance or Financial
-  Reporting Manual was verified. See
+- The supplied ZFRM and internally titled Finance Act, 2023, No. 13 were
+  examined and hashed. Current complete applicability and council policies
+  remain unverified/unapproved. See
   [docs/ACCOUNTING_SOURCES.md](docs/ACCOUNTING_SOURCES.md) for the register and
   the explicit production blockers.
 - No real payment gateway, bank API, mobile-money API or STS prepaid provider is
@@ -138,6 +141,10 @@ chart and posting rules are approved.
 - [Accounting sources and standards register](docs/ACCOUNTING_SOURCES.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Implementation status](docs/IMPLEMENTATION_STATUS.md)
+- [Acceptance report](docs/ACCEPTANCE_REPORT.md)
+- [Manual local browser acceptance](docs/MANUAL_ACCEPTANCE_SCRIPT.md)
+- [Municipal MVP checklist](docs/MVP_CHECKLIST.md)
+- [Municipal MVP scope](docs/MVP_SCOPE.md)
 - [Threat model](docs/THREAT_MODEL.md)
 - [API contract](docs/API.md)
 - [Windows setup](docs/SETUP-WINDOWS.md)

@@ -43,6 +43,12 @@ return [
         'webhook_tolerance_seconds' => 300,
     ],
 
+    'refunds' => [
+        // Above this amount a second, higher approval permission is required.
+        'approval_threshold_minor' => (int) env('REFUND_APPROVAL_THRESHOLD_MINOR', 100000),
+        'default_gateway' => 'sandbox',
+    ],
+
     'ai' => [
         'enabled' => (bool) env('AI_ENABLED', false),
         'provider' => env('AI_DEFAULT_PROVIDER'),

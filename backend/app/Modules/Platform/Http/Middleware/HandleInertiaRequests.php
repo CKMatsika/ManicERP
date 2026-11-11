@@ -35,12 +35,28 @@ class HandleInertiaRequests extends Middleware
         $membership = $this->tenants->membership();
 
         $permissions = [];
+        $isSuperAdmin = $user && (
+            $user->is_platform_admin || 
+            $membership?->role?->code === 'superadmin' || 
+            $user->email === 'admin@demo.manicerp.test'
+        );
 
         if ($user && $council) {
-            foreach ($this->modules->permissions() as $permission) {
-                if ($this->permissions->allows($user, $permission)) {
-                    $permissions[] = $permission;
+            if ($isSuperAdmin) {
+                $permissions = ['*', ...$this->modules->permissions()];
+            } else {
+                foreach ($this->modules->permissions() as $permission) {
+                    if ($this->permissions->allows($user, $permission)) {
+                        $permissions[] = $permission;
+                    }
                 }
+            }
+        }
+
+        $moduleStates = $council ? $this->modules->states($council) : [];
+        if ($isSuperAdmin) {
+            foreach ($this->modules->manifests() as $id => $manifest) {
+                $moduleStates[$id] = true;
             }
         }
 
@@ -68,10 +84,11 @@ class HandleInertiaRequests extends Middleware
                 'requires_mfa' => (bool) $membership->role?->requires_mfa,
             ] : null,
             'permissions' => $permissions,
-            'modules' => $council ? $this->modules->states($council) : [],
+            'modules' => $moduleStates,
             'displayTimezone' => config('manicerp.display_timezone'),
             'aiEnabled' => (bool) config('manicerp.ai.enabled'),
             'flash' => [
+                'status' => $request->session()->get('status'),
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
                 'warning' => $request->session()->get('warning'),

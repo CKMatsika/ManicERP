@@ -9,7 +9,8 @@ class PolicyDocument extends TenantModel
     protected $fillable = [
         'title', 'version', 'status', 'effective_from', 'effective_to',
         'source_url', 'source_authority', 'content', 'checksum',
-        'approved_by', 'approved_at',
+        'approved_by', 'approved_at', 'source_document_id', 'section_ref',
+        'page_ref', 'document_kind', 'approved_policy',
     ];
 
     protected function casts(): array
@@ -18,6 +19,7 @@ class PolicyDocument extends TenantModel
             'effective_from' => 'date',
             'effective_to' => 'date',
             'approved_at' => 'datetime',
+            'approved_policy' => 'boolean',
         ];
     }
 

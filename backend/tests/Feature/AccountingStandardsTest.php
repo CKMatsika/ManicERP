@@ -29,9 +29,9 @@ class AccountingStandardsTest extends TestCase
     {
         $count = app(AccountingStandardsService::class)->seedDefaults();
 
-        $this->assertSame(12, $count);
-        $this->assertSame(12, AccountingStandard::count());
-        $this->assertSame(12, AccountingStandard::where('verification_status', 'unverified')->count());
+        $this->assertSame(13, $count);
+        $this->assertSame(13, AccountingStandard::count());
+        $this->assertSame(13, AccountingStandard::where('verification_status', 'unverified')->count());
         $this->assertSame(0, AccountingStandard::whereNotNull('approved_at')->count());
         $this->assertSame(1, AccountingStandard::where('code', 'IPSAS 47')->count());
     }
@@ -45,7 +45,7 @@ class AccountingStandardsTest extends TestCase
         $response->assertOk();
         $page = $response->viewData('page');
         $this->assertSame('Accounting/Standards', $page['component']);
-        $this->assertSame(12, $page['props']['summary']['total']);
+        $this->assertSame(13, $page['props']['summary']['total']);
         $this->assertSame(0, $page['props']['summary']['verified']);
     }
 
@@ -54,6 +54,6 @@ class AccountingStandardsTest extends TestCase
         app(AccountingStandardsService::class)->seedDefaults();
         app(AccountingStandardsService::class)->seedDefaults();
 
-        $this->assertSame(12, AccountingStandard::count());
+        $this->assertSame(13, AccountingStandard::count());
     }
 }

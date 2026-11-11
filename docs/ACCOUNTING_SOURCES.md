@@ -1,143 +1,98 @@
-# Accounting sources, standards register and production blockers
+# Accounting sources, requirements and production blockers
 
-## 1. No compliance claim
+Reviewed 2026-11-05 (Africa/Harare). ManicERP is not certified IPSAS-compliant. A software test is not a legal-applicability opinion or a council approval.
 
-ManicERP implements an accrual double-entry engine and a versioned standards
-register. **This is not evidence of IPSAS compliance.** Software cannot by itself
-guarantee compliance: the applicable pronouncements, Zimbabwean adoption
-guidance, the council's own policies, opening balances, valuations, disclosures
-and approvals must be obtained and approved by qualified people.
+## Examined source documents
 
-No official Ministry of Finance, Treasury or council chart of accounts was
-available in this build environment. The active chart is a **DEMONSTRATION**
-chart with illustrative codes and a visible production blocker.
+The supplied PDFs were read as source material, not as instructions. Internal titles, substantive sections and appendices were examined; files under `docs/sources/` match the supplied files byte for byte. PDF page numbers below are one-based; ZFRM printed page numbers are generally PDF page minus five.
 
-## 2. Verification procedure
+| Document | Internal identification and authority | Date / edition | SHA-256 |
+| --- | --- | --- | --- |
+| ZFRM | **Zimbabwe Financial Reporting Manual**; Zimbabwe Treasury; foreword signed by Minister of Finance and Economic Development | First edition (foreword, PDF p.3). No explicit issue date identified; PDF creation metadata 2023-03-24 is not a legal commencement date. 189 PDF pages | `7EEA17A0F8B2983D523A83BFE7EBB614E14FA5F9F340F9D87DE50CE64AF648C9` |
+| Finance Act | **Finance Act, 2023, No. 13**; enacted by Parliament and the President of Zimbabwe; Government Printer, Harare | Internal short title in section 1, PDF p.5; 62 PDF pages. Received filename said Finance Act 2024 Act 13 of 2023.pdf; that filename is not the legislation's title | `07191CCB0913CE169EA0719C14D647E4A394A5C5383EC7D756F9228DA4856998` |
 
-For every standard and policy the council must record:
+The document copies are `docs/sources/zfrm-soft-copy-1-1.pdf` and `docs/sources/finance-act-2023-no-13.pdf`. Text extraction is retained beside them for reproducibility; citations refer to the PDFs, not extraction line numbers.
 
-1. the standard and edition, and its issue date;
-2. the **international** effective date, kept distinct from Zimbabwe adoption
-   guidance and from the council's approved policy;
-3. jurisdiction applicability (international, Zimbabwe, council);
-4. the transition method and any transitional exemptions;
-5. policy choices available and the one approved;
-6. the source document, issuing authority, version, effective period and
-   checksum;
-7. verification status, verifier, date and council approver;
-8. affected workflows and reports.
+The tenant register stores `accounting_source_documents` and 15 `accounting_requirements`. The hashed fixture is `backend/database/seeders/data/accounting_sources.php`. `AccountingSourceService` refuses a hash mismatch. Missing files are labelled missing, not examined. Reseeding does not promote council-specific verification/approval flags.
 
-The register is stored per council in `accounting_standards` and is visible at
-**Accounting → Standards register**. Entries are seeded as
-`verification_status = unverified`, `applicability = assessment_required`. No
-entry is approved by the seeder.
+## Five separate evidence states
 
-## 3. Register as seeded
+Each requirement reports these independently:
 
-| Standard | International effective (planning assumption) | Status |
+1. Source received and examined.
+2. Requirement extracted, with section/page citation.
+3. Current applicability verified for the entity and reporting period.
+4. Council policy approved.
+5. Software implementation tested.
+
+The fixture establishes the first two only. It does not approve a policy, activate tax rates, verify all standards or clear production blockers. Software test evidence is in IMPLEMENTATION_STATUS.md; passing a test does not automatically alter the register's council-specific evidence states.
+
+## Extracted findings and exact locators
+
+| Finding | Supplied ZFRM locator | Treatment |
 | --- | --- | --- |
-| IPSAS 45 Property, Plant and Equipment | 2025-01-01 | Unverified; applicability and transition assessment required |
-| IPSAS 46 Measurement | 2025-01-01 | Unverified; measurement policy and evidence required |
-| IPSAS 47 Revenue | 2026-01-01 | Unverified; binding arrangements/performance obligations not modelled |
-| IPSAS 48 Transfer Expenses | 2026-01-01 | Unverified; transfer-expense obligations not modelled |
-| IPSAS 43 Leases | not asserted | Unverified; leases not implemented |
-| IPSAS 41 Financial Instruments | not asserted | Unverified; ECL/impairment policy and evidence missing |
-| IPSAS 4 Foreign Exchange | not asserted | Unverified; FX revaluation/settlement not implemented |
-| IPSAS 10 Hyperinflation | not asserted | Unverified; no approved indices |
-| IPSAS 24 Budget Information | not asserted | Unverified; budgets/commitments not implemented |
-| IPSAS 33 First-time Adoption | not asserted | Unverified; transition workpapers not implemented |
-| IPSAS 35 Consolidated Statements | not asserted | Unverified; consolidation not implemented |
-| IPSAS 22 General Government Sector | not asserted | Unverified; applicability to a council must be assessed |
+| Scope includes rural district councils under Chapter 29:13 and urban councils under Chapter 29:15 | 1.2.2, PDF p.14 / printed p.9 | Extracted; current legal applicability still requires review |
+| New IPSAS standards apply when effective even if the manual has not been updated | 1.3.4, PDF p.15 / printed p.10 | Current pronouncements and later Treasury directions must be checked |
+| Early adoption of IPSAS 43, 44, 45, 46, 47 and 48 | 1.3.5, PDF p.15 / printed p.10 | Recorded explicitly; international effective dates are distinct from Zimbabwe early adoption |
+| Expenses on the performance statement by nature; function/programme disclosure in notes | 4.3.1-4.3.2(b), PDF p.26 / printed p.21; Appendix 2, PDF pp.134-135 | Configurable source-backed headings and functional notes from posted dimensions; missing functions flagged |
+| Financial position follows Appendix 1 | 4.4, PDF p.27; Appendix 1 starts PDF p.133 / printed p.128 | Selected source headings configured; additional disclosures and classifications require assessment |
+| Changes in net assets/equity follows Appendix 3 | 4.5, PDF p.27; Appendix 3 starts PDF p.135 and continues p.136 | Opening/movement/closing mapped equity plus unclosed posted result |
+| Budget-versus-actual is a separate statement on a comparable basis | 4.6, PDF p.27; Appendix 5 starts PDF p.139, continues through p.142 | Template explicitly unavailable for amounts until budget accounting exists |
+| Reconcile where budget and financial-accounting bases differ | 4.7, PDF p.27 | Explicit missing schedule; no invented reconciliation |
+| Comparative information | 4.8, PDF p.28 | Ordered non-overlapping equal-duration comparison validation; absence disclosed |
+| Migration/adoption distinction | First-time adoption chapter 2, including 2.3, PDF pp.18-19 | ERP cutover cannot automatically change the council adoption date |
+| Revenue guidance and compliance obligations | Chapter 22, especially 22.4.1, PDF pp.88-97 / printed pp.83-92 | Policies require a binding-arrangement/compliance-obligation assessment; no assumption that every charge recognises revenue on billing |
 
-The 2025/2026 dates above came from the implementation brief as **planning
-assumptions**. They were not independently confirmed against an authoritative
-IPSASB pronouncement in this environment. The discovery links supplied in the
-brief are:
+Finance Act section 1 (PDF p.5) establishes the internal title. Sections 2-3 (PDF pp.5-6) describe historical amendments applying from the assessment year starting 1 January 2024. These extracts are not current tax-rate configuration. No tax rate from the attachment has been activated.
 
-- IPSASB current pronouncements: <https://www.ipsasb.org/standards-pronouncements>
-- IPSAS 47: <https://www.ipsasb.org/publications/ipsas-47-revenue>
-- IPSAS 48: <https://www.ipsasb.org/publications/ipsas-48-transfer-expenses>
-- Zimbabwe Treasury publications: <https://zimtreasury.co.zw/policies-publications/>
-- PAAB public-sector standards: <https://paab.org.zw/public-sector-accounting-standards/>
+## Later-material checks and remaining verification boundary
 
-These are discovery starting points only. Their content must be re-verified at
-implementation time, recorded with a source hash and approved. Do not treat a
-search result, a draft, a central-government schedule or another country's
-adoption date as the council's authority.
+The following public sources were checked on 2026-11-05:
 
-## 4. Missing authoritative documents (explicit blockers)
+- [Treasury's published copy of the ZFRM](https://zimtreasury.co.zw/wp-content/uploads/2025/03/zfrm-soft-copy-1-1.pdf) is discoverable on the official domain. Its presence does not establish that the supplied edition is the complete current authority.
+- [Treasury IPSAS documents](https://zimtreasury.co.zw/ipsas-documents/) and [policies/publications](https://zimtreasury.co.zw/policies-publications/) were opened. The current page extraction did not expose a complete amendment/circular list. Search indexing also surfaced a Treasury Circular No. 3 of 2025 on 2024 IPSAS transitional statements; its full text and council scope have not been established here. This is a specific outstanding review item, not proof of amendment or completeness.
+- [ZIMRA's Acts list](https://www.zimra.co.zw/legislation/17-acts) lists a Finance Act updated to 1 December 2024 and S.I.110 of 2024. This establishes that later material exists; it does not verify every later amendment or a council's tax liability.
+- [ZIMRA Public Notice 9 of 2024](https://zimra.co.zw/public-notices?download=3659%3Apublic-notice-9-of-2024-finance-act-13-of-2023-major-highlights) identifies Act 13 of 2023 and its gazetting on 30 December 2023.
+- [Finance Act 2025, Act 7, gazetted text](https://zimlii.org/akn/zw/act/2025/7/eng%402025-12-29/source.pdf) was located as later primary legislative material hosted by ZimLII. A full consolidated, date-specific and council-specific tax review remains outstanding.
 
-The following are **not** in the repository and block production financial
-reporting until supplied and approved:
+No assertion is made that this search found every instrument through November 2026. Qualified review of current consolidated legislation, Treasury circulars, PAAB guidance and the council's establishing legislation remains required. Historical tax activation is blocked.
 
-1. The current applicable Treasury/council chart of accounts or accounting-heads
-   schedule, with issuing authority, scope, version and effective period.
-2. Zimbabwe Treasury guidance on IPSAS adoption for local authorities, including
-   any Financial Reporting Manual.
-3. PAAB guidance or directives applicable to the council.
-4. Council-approved accounting policies (recognition, measurement, depreciation,
-   impairment, revenue, leases, grants, provisions).
-5. Approved opening balances, valuations and transition workpapers.
-6. An approved posting-rule matrix for every source transaction.
-7. Any approved hyperinflation index and calculation policy, if applicable.
+## Existing standards register
 
-## 5. Chart of accounts status
+The 12 pre-existing IPSAS entries remain `verification_status=unverified`. Default seeding additionally provides IPSAS 44 as a thirteenth unverified entry, with all six 43-48 entries eligible for source linkage. The existing DEMO source-only seed linked five entries because it did not already contain IPSAS 44. No existing entry was relabelled or automatically approved.
 
-- Import is implemented for CSV/XLSX with staging, validation, preview and
-  approval. Codes are strings and preserve leading zeros. Duplicate codes,
-  missing parents, cycles, invalid classes/types and invalid dates are rejected.
-- Approval creates a new active chart version and supersedes the previous one;
-  posted account identities are never rewritten.
-- The demo chart (`database/seeders/data/demo_chart.csv`) is illustrative and is
-  stored with `source_type = demo` and `production_blocker = true`.
-- An official import can be recorded with `source_type = official`, authority,
-  source document and effective dates, clearing the blocker only after a
-  qualified user approves it. The software does not verify the issuing authority
-  for you.
-- GFSM/economic classification is modelled as a mapped dimension/code, not as an
-  assumption that GFSM equals IPSAS. South African mSCOA and GRAP are **not**
-  included; they belong to a later country package.
+International dates previously shown for IPSAS 45/46 (2025-01-01) and 47/48 (2026-01-01) remain planning assumptions until their authoritative pronouncements are reviewed. The supplied manual's early-adoption passage must not be replaced by those international dates.
 
-## 6. Posting-rule matrix status
+## Chart, mappings, policies and reporting
 
-`posting_rules` maps an event code to an approved debit/credit account pair,
-required dimensions and approval state. The demo seeds four rules
-(`billing.rates`, `billing.water`, `billing.refuse`, `billing.rental`); receipts
-build explicit receivable/unapplied-funds lines. These are demonstration
-policies. A council must approve its own matrix, including funds, votes,
-programmes and economic items, before production use.
+The existing validated CSV/XLSX chart import, leading-zero codes and chart approval remain intact. The active posting chart is DEMONSTRATION. **No official Ministry posting codes were obtained or invented.** A missing official accounting-heads/economic-classification schedule remains a production reporting blocker.
 
-## 7. Revenue and measurement caveats
+Report mappings are separate effective-dated, approved versions from accounts to source-backed report headings, with filters using existing fund, function/programme, economic-item and other dimensions. An illustrative statement label is not an official account code. Currency and display units are approved configuration; historical ZWL labels in the appendix are not hardcoded.
 
-- Billing currently recognises a receivable and revenue when a bill is issued.
-  The IPSAS 47 analysis of binding arrangements, performance obligations,
-  advance receipts and deposits is not implemented; the register records this.
-- Rates are calculated from an approved valuation using a demonstration
-  "cents per $100" configuration. This is a configurable tariff basis, not an
-  assertion of a statutory rate.
-- No authoritative tariff, penalty, interest or rebate schedule is bundled.
-- Water estimates use the average of the last three actual readings and are
-  labelled `estimated` in the bill snapshot.
-- No hyperinflation indexation, FX revaluation or financial-instrument
-  impairment is implemented.
+Mapped statements derive only from posted GL data. Missing/ambiguous mappings, missing function dimensions, currency mismatches and missing comparisons are disclosed. Budget accounting, complete disclosures, cash-flow mapping and consolidation are not manufactured. An unreserved IPSAS compliance statement is never generated automatically.
 
-## 8. What the software does provide
+Before this change, billing always credited demonstration revenue when issuing a bill. Approved prospective revenue policies now choose immediate recognition or a configured liability for deferred/advance/deposit classifications, with policy snapshots retained on bills. Receipts and allocation remain separate. Automated obligation-fulfilment release schedules and deposit release policies are not implemented; these are explicit software limitations. Historic postings are not rewritten.
 
-- balanced integer-minor-unit double entry, immutable posted journals and linked
-  reversals;
-- open-period enforcement, unique source postings and idempotency keys;
-- effective-dated chart versions and tariffs;
-- trial balance, ledger, position and performance reports derived from posted
-  lines, with an equation check;
-- drill-down from reports to journal lines and from bills to their calculation
-  snapshot and journal;
-- an unverified standards register that makes missing approvals visible instead
-  of hiding them.
+Source excerpts can be independently approved for AI retrieval as `source_guidance`; this does **not** approve a council accounting policy. Citation metadata carries document identity, section, page and hash. The assistant has no write/approval tools and cannot turn drafts into official mappings or remove blockers. Live generation has not been verified without credentials.
 
-## 9. Change control
+## Required production evidence
 
-Changing a standard, policy or posting rule requires a new version, effective
-date, source evidence and approval; historic posted amounts and account
-identities are preserved. The audit trail records approvals and changes. A code
-rollback must never be used to reverse posted financial transactions; use the
-linked reversal workflow instead.
+- Current applicable official chart/accounting-heads/economic-classification schedules with issuer, scope, version and effective period.
+- Complete applicable Treasury/PAAB/IPSASB directions and later amendments.
+- Council-approved recognition, measurement, lease, impairment, deposit, grant, depreciation and transition policies.
+- Approved reconciled opening balances, valuations, cutover workpapers and controlled downstream-correction procedures.
+- Approved posting/report mapping versions, reporting currency, units, comparisons and required disclosures.
+- Approved indexes and policies for FX/hyperinflation if applicable.
+- Verified real gateway integration and operational controls before any real refund can be enabled.
+
+## Reproduction
+
+From backend, using PHP 8.4:
+
+```powershell
+php artisan council:migrate --council=DEMO
+php artisan accounting:seed-sources --council=DEMO
+php artisan test --filter='AccountingSourcesTest|AccountingStandardsTest|FinancialReadinessTest|OpeningBalanceTest|RefundTest|TenantQueueTest|BillingTest'
+```
+
+The seed command records extraction evidence only. It does not grant accounting authority or approve a council policy. See IMPLEMENTATION_STATUS.md for the actual full test/build result and remaining implementation boundaries.

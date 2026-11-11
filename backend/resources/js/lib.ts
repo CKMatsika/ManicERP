@@ -12,16 +12,38 @@ export type SharedProps = {
 
 export function money(minor: number | null | undefined, currency = 'USD'): string {
     const value = (minor ?? 0) / 100;
+    const prefix = currency === 'USD' ? 'US$' : `${currency} `;
 
     try {
-        return new Intl.NumberFormat('en-ZW', {
-            style: 'currency',
-            currency,
+        const formatted = new Intl.NumberFormat('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(value);
+        return `${prefix}${formatted}`;
     } catch {
-        return `${currency} ${value.toFixed(2)}`;
+        return `${prefix}${value.toFixed(2)}`;
+    }
+}
+
+export function reportMoney(minor: number | null | undefined, currency = 'USD', useParens = true): string {
+    const value = (minor ?? 0) / 100;
+    const prefix = currency === 'USD' ? 'US$' : `${currency} `;
+    const absVal = Math.abs(value);
+
+    try {
+        const formatted = new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(absVal);
+        if (value < 0) {
+            return useParens ? `(${prefix}${formatted})` : `-${prefix}${formatted}`;
+        }
+        return `${prefix}${formatted}`;
+    } catch {
+        if (value < 0) {
+            return useParens ? `(${prefix}${absVal.toFixed(2)})` : `-${prefix}${absVal.toFixed(2)}`;
+        }
+        return `${prefix}${value.toFixed(2)}`;
     }
 }
 
@@ -57,5 +79,5 @@ export function formatDate(value: string | null | undefined): string {
 }
 
 export function can(permissions: string[], permission: string): boolean {
-    return permissions.includes(permission);
+    return permissions.includes('*') || permissions.includes(permission);
 }

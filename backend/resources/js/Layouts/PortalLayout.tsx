@@ -8,6 +8,9 @@ const NAV = [
     { label: 'Pay', href: '/portal/pay' },
     { label: 'Link account', href: '/portal/link' },
     { label: 'Requests', href: '/portal/requests' },
+    { label: 'Licences', href: '/portal/licensing' },
+    { label: 'Notifications', href: '/portal/licensing/notifications' },
+    { label: 'Licence help', href: '/portal/licensing/assistant' },
 ];
 
 export default function PortalLayout({ title, children }: { title: string; children: ReactNode }) {

@@ -4,8 +4,12 @@ namespace App\Providers;
 
 use App\Models\PersonalAccessToken;
 use App\Models\User;
+use App\Modules\Licensing\Contracts\LicenceAiProvider;
+use App\Modules\Licensing\Services\SdkLicenceAiProvider;
 use App\Modules\Platform\Services\PermissionService;
 use App\Modules\Platform\Services\TenantManager;
+use App\Modules\Revenue\Contracts\RefundGateway;
+use App\Modules\Revenue\Gateways\SandboxRefundGateway;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -18,6 +22,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(TenantManager::class);
+        $this->app->bind(RefundGateway::class, SandboxRefundGateway::class);
+        $this->app->bind(LicenceAiProvider::class, SdkLicenceAiProvider::class);
 
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
     }

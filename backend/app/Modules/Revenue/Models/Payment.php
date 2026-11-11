@@ -42,6 +42,7 @@ class Payment extends TenantModel
 
     public function unallocatedMinor(): int
     {
-        return $this->amount_minor - (int) $this->allocations()->whereNull('reversed_at')->sum('amount_minor');
+        return max(0, $this->amount_minor - (int) $this->allocations()->whereNull('reversed_at')->sum('amount_minor')
+            - (int) Refund::where('payment_id', $this->id)->where('status', 'settled')->sum('amount_minor'));
     }
 }

@@ -57,7 +57,11 @@ class ModuleRegistryTest extends TestCase
     {
         $registry = app(ModuleRegistry::class);
 
+        $registry->setEnabled($this->council, 'licensing', false, $this->admin->id);
         $registry->setEnabled($this->council, 'customer', false, $this->admin->id);
+        $registry->setEnabled($this->council, 'procurement', false, $this->admin->id);
+        $registry->setEnabled($this->council, 'hr', false, $this->admin->id);
+        $registry->setEnabled($this->council, 'fleet', false, $this->admin->id);
         $registry->setEnabled($this->council, 'revenue', false, $this->admin->id);
         $registry->setEnabled($this->council, 'accounting', false, $this->admin->id);
 
@@ -67,6 +71,7 @@ class ModuleRegistryTest extends TestCase
 
     public function test_disabled_module_routes_are_blocked_server_side(): void
     {
+        app(ModuleRegistry::class)->setEnabled($this->council, 'licensing', false, $this->admin->id);
         app(ModuleRegistry::class)->setEnabled($this->council, 'customer', false, $this->admin->id);
         app(ModuleRegistry::class)->setEnabled($this->council, 'revenue', false, $this->admin->id);
 
@@ -77,11 +82,11 @@ class ModuleRegistryTest extends TestCase
     {
         $registry = app(ModuleRegistry::class);
 
-        $this->assertFalse($registry->isAvailable('procurement'));
-        $this->assertFalse($registry->canEnable($this->council, 'procurement'));
+        $this->assertFalse($registry->isAvailable('assets'));
+        $this->assertFalse($registry->canEnable($this->council, 'assets'));
 
         $this->expectException(\DomainException::class);
 
-        $registry->setEnabled($this->council, 'procurement', true, $this->admin->id);
+        $registry->setEnabled($this->council, 'assets', true, $this->admin->id);
     }
 }

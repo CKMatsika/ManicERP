@@ -12,7 +12,9 @@ use App\Modules\Platform\Services\TenantManager;
 use App\Modules\Revenue\Models\Bill;
 use App\Modules\Revenue\Models\Payment;
 use App\Modules\Revenue\Models\PaymentIntent;
+use App\Modules\Revenue\Models\Refund;
 use App\Modules\Revenue\Services\PaymentService;
+use App\Modules\Revenue\Services\RefundService;
 use App\Support\Money;
 use Dompdf\Dompdf;
 use Illuminate\Http\Request;
@@ -127,6 +129,8 @@ class PortalController extends Controller
             ],
             'bills' => $bills,
             'payments' => $payments,
+            'refunds' => Refund::where('customer_account_id', $model->id)->latest()->limit(24)->get()
+                ->map(fn ($refund) => app(RefundService::class)->status($refund)),
         ]);
     }
 

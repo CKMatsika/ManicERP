@@ -5,5 +5,56 @@
 @source './**/*.tsx';
 
 @theme {
-    --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    
+    /* Municipal Civic Tokens */
+    --color-civic: #0F5C3A;
+    --color-civic-50: #F0FDF4;
+    --color-civic-100: #DCFCE7;
+    --color-civic-600: #0F5C3A;
+    --color-civic-700: #0A432A;
+    --color-civic-800: #062E1C;
+
+    --color-canvas: #F7F8FA;
+    --color-card: #FFFFFF;
+    --color-border-card: #E5E7EB;
+}
+
+@layer base {
+    body {
+        font-family: var(--font-sans);
+        background-color: #F7F8FA;
+        color: #0F172A;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Tabular numeric alignment for all finance and metrics */
+    .tabular-nums {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+@media print {
+    aside, header, nav, .no-print, .print-hide {
+        display: none !important;
+    }
+    body, main {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+    }
+    .print-only {
+        display: block !important;
+    }
+    .receipt-80mm {
+        width: 80mm !important;
+        max-width: 80mm !important;
+        margin: 0 auto !important;
+        padding: 8px !important;
+        font-size: 12px !important;
+        line-height: 1.3 !important;
+    }
 }

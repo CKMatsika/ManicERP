@@ -164,6 +164,30 @@ class BankReconciliationService
         });
     }
 
+    /** Match a negative bank withdrawal to a posted synthetic supplier payment. */
+    public function confirmSupplierPaymentMatch(BankStatementLine $line, string $supplierPaymentId, ?User $user = null): void
+    {
+        $payment = DB::connection('tenant')->table('procurement_supplier_payments')->where('id', $supplierPaymentId)->first();
+        if (! $payment || $payment->status !== 'settled' || $payment->settlement_adapter !== 'sandbox') {
+            throw new \DomainException('Only recorded sandbox supplier settlements can be matched here.');
+        }
+        if ($line->status !== 'unmatched' || (int) $line->amount_minor !== -((int) $payment->amount_minor)) {
+            throw new \DomainException('Supplier payment statement line must be an unmatched withdrawal for the exact settled amount.');
+        }
+        $statement = $line->statement()->with('bankAccount')->firstOrFail();
+        if ($statement->bankAccount->gl_account_code !== config('procurement.accounting.bank_account', '1120')) {
+            throw new \DomainException('Supplier settlement does not post to this bank account.');
+        }
+        DB::connection('tenant')->transaction(function () use ($line, $payment, $user) {
+            $locked = BankStatementLine::query()->whereKey($line->id)->lockForUpdate()->firstOrFail();
+            if ($locked->status !== 'unmatched') {
+                throw new \DomainException('This statement line has already been matched.');
+            }
+            $locked->forceFill(['status' => 'matched', 'matched_supplier_payment_id' => $payment->id, 'matched_at' => now(), 'matched_by' => $user?->getKey()])->save();
+            $this->audit->record(action: 'procurement.supplier_payment.bank_matched', subject: $locked, after: ['supplier_payment_id' => $payment->id, 'amount_minor' => (int) $payment->amount_minor], module: 'procurement');
+        });
+    }
+
     public function ignore(BankStatementLine $line, string $reason, ?User $user = null): void
     {
         $line->status = 'ignored';

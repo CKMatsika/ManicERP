@@ -34,6 +34,12 @@ export default function MfaChallenge() {
                     <button type="submit" disabled={processing} className="w-full rounded bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-50">
                         Verify and continue
                     </button>
+
+                    <div className="mt-4 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800 space-y-1">
+                        <div className="font-bold">Demo Council Authenticator Details:</div>
+                        <div>Secret Key: <code className="font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-300 select-all font-bold">MANICERP2026DEMO2345672345672345</code></div>
+                        <div className="text-slate-600">Add this key to Google Authenticator / Microsoft Authenticator on your phone, or enter demo code <strong className="text-emerald-900 font-mono text-sm">123456</strong>.</div>
+                    </div>
                 </form>
             </div>
         </>

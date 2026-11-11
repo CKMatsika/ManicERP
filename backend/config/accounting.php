@@ -16,12 +16,14 @@ return [
         'water' => '1320',
         'refuse' => '1320',
         'rental' => '1330',
+        'licence' => '1310', // Demonstration chart only; production requires an approved council policy.
     ],
     'revenue' => [
         'rates' => '4010',
         'water' => '4020',
         'refuse' => '4030',
         'rental' => '4040',
+        'licence' => '4010', // Demonstration chart only; production requires an approved council policy.
     ],
     'receipts' => [
         'cash' => '1110',

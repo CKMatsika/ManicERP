@@ -46,6 +46,45 @@ Check the database block in `.env`: `DB_HOST=127.0.0.1`, `DB_PORT=5433`,
 `TENANT_DB_*` variables are only a connection template; the database name for a
 council always comes from the council directory.
 
+## 3a. Isolated acceptance environment
+
+Do not use the operational `manicerp_central` or existing `manicerp_demo`
+database for acceptance. With a local-only `.env` (`APP_ENV=local` and a
+loopback `DB_HOST`), run:
+
+```powershell
+cd C:\Users\User\Desktop\ManicERP\backend
+.\bin\New-ManicErpAcceptance.ps1
+```
+
+The runner checks the exact database names and local settings, creates
+`manicerp_acceptance_central` only if absent, applies pending central migrations,
+and provisions/reuses `ACCEPTANCE_DEMO` on `manicerp_acceptance_demo`. It never
+runs `migrate:fresh`, drops a database or overwrites existing user credentials.
+New synthetic staff credentials are saved only when new actors are created, in
+`backend/storage/app/acceptance/` with an ACL for the current Windows user and
+SYSTEM. The JSON files are git-ignored. Privileged staff must enroll MFA through
+the ordinary setup and challenge screens.
+
+The local mail transport is `log`; verification links and OTP codes in
+`backend/storage/logs/laravel.log` are credentials. Do not paste them into source
+control, screenshots or reports. Keep this file private and remove it using
+normal local credential-retention procedures when acceptance is complete.
+
+To serve only the isolated acceptance central database, in the same PowerShell
+session set these variables before starting Laravel:
+
+```powershell
+$env:DB_DATABASE = 'manicerp_acceptance_central'
+$env:APP_URL = 'http://127.0.0.1:8001'
+$env:MAIL_MAILER = 'log'
+C:\php84\php.exe artisan serve --host=127.0.0.1 --port=8001
+```
+
+The browser setup is synthetic and sandbox-only. If a seed fails, inspect and
+repair the existing acceptance data; do not reset or delete the database to
+make a rerun pass.
+
 ## 4. Install and migrate
 
 ```powershell
@@ -66,6 +105,15 @@ C:\php84\php.exe artisan council:migrate
 C:\php84\php.exe artisan accounting:seed-standards --council=DEMO
 C:\php84\php.exe artisan audit:verify
 ```
+
+The licensing migration is additive and is included in `council:migrate`. The
+module manifest makes it available, but a council must enable the `licensing`
+module and assign the relevant permissions before staff or citizen routes are
+usable. `Seed demonstration type` is restricted to a council explicitly marked
+`is_demo`; the seeded configuration says **DEMONSTRATION ONLY** and does not
+assert statutory fees, deadlines or legal requirements. Production licence
+types need a recorded council authority, effective dates and independent
+approval before they appear in the citizen catalogue.
 
 ## 5. Frontend
 
@@ -118,6 +166,12 @@ flutter pub get
 flutter test
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
 ```
+
+The licensing screen uses the same versioned `/api/v1/licensing` endpoints as
+other mobile services. Offline drafts are stored on-device and remain clearly
+marked unsent until the server accepts submission. `file_picker` handles
+evidence selection and certificate saving; `flutter pub get` resolves the
+added dependency before building.
 
 If Flutter is not installed, `flutter` commands fail; that is expected and means
 mobile builds are unverified, not that the source is absent.

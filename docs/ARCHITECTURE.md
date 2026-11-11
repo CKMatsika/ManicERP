@@ -18,12 +18,13 @@ One backend serves three surfaces:
 ```
 backend/
   app/
-    Http/Controllers/{Accounting,Admin,Ai,Api,Auth,Customer,Revenue}/
+    Http/Controllers/{Accounting,Admin,Ai,Api,Auth,Customer,Licensing,Revenue}/
     Modules/
       Platform/   Models, Services, Http/Middleware
       Accounting/ Models, Services
       Revenue/    Models, Services, Gateways, Contracts
       Customer/   Models, Services
+      Licensing/  Models, Services, Jobs
       Ai/         Models, Services
     Support/      Money, Decimal, TenantModel
   database/migrations/central/   council directory and identity
@@ -81,9 +82,15 @@ hold a transaction.
 Queue/cache/session storage is central (`database` drivers). A queued job must
 carry a validated council identifier in its constructor and run its work inside
 `TenantManager::runFor($council, ...)`, which restores the previous tenant context
-in a `finally` block. **No production job classes that touch tenant data have
-been implemented yet**; this is a required pattern before adding them, and a
-known gap for the next phase.
+in a `finally` block. `TenantJob` re-resolves active council/module state, bounds
+retries and logs payload failures to separate council files. `TenantCache` and
+`TenantStorage` namespace shared resources and reject unsafe file paths.
+Real database-worker tests cover deserialization, retries, terminal failure and
+subsequent work for another council. Custom context fields are cleared; nested
+calls restore their caller. Central retry_after defaults to 180 seconds, above
+the job's 120-second timeout. Existing billing/PDF actions remain synchronous.
+`TenantScheduleRunner` isolates council failures; audit verification is registered
+daily at 02:00 Africa/Harare. The host must run Laravel's scheduler.
 
 ### Cross-council reporting
 
@@ -118,8 +125,7 @@ dependencies, permissions, availability and a core flag. State is stored in
 - a module with active dependants cannot be disabled;
 - unavailable modules cannot be enabled;
 - routes declare `module:accounting` and are blocked server-side;
-- scheduled jobs and integrations must call `ModuleRegistry::ensureEnabled` too
-  (no such jobs exist yet, so this is a convention to follow).
+- tenant scheduled jobs re-resolve active council/module state before work.
 
 ## 5. Accounting engine
 
@@ -261,6 +267,30 @@ provenance. Downloads pass through `DocumentController` with
 `Cache-Control: private, no-store`. No scanner is configured, so documents are
 marked `not_scanned`.
 
+Confidential licensing attachments are linked to the tenant's application
+record. Downloads require either a verified account relationship or an active
+council staff membership with a licensing review/management/approval/issuance
+permission. Knowing an application ID or document ID does not grant access.
+
+## 9a. Licensing and renewals
+
+Licence types have tenant-scoped, numbered configuration versions. Submission
+snapshots the effective configuration. Licences/instruments are separate from
+application attempts and certificate versions; renewal issuance links the new
+certificate to its predecessor. Shared billing, payment, allocation, refund and
+journal services remain the only financial path. Deferred licence recognition
+and stage-specific inspection/issuance fees are explicitly blocked until their
+release and charge-stage workflows exist.
+
+The browser and `/api/v1/licensing` expose citizen and staff workflows under
+module and permission checks. Public QR verification resolves a council and
+opaque verification ID, shows minimal certificate data and current validity,
+and disables caching so suspension/revocation is promptly visible. Mobile
+offline drafts are local unsent data and do not constitute applications or
+payments. Expiry processing uses the configured council timezone and tenant-safe
+job base. Notification records are deduplicated; no email/SMS/push adapter is
+configured.
+
 Other controls: CSRF on web routes, rate-limited login, session regeneration,
 security headers, scoped API tokens, server-side authorization on every route,
 and role/permission checks independent of navigation.
@@ -281,8 +311,8 @@ and role/permission checks independent of navigation.
 
 ## 11. Known architectural gaps
 
-- No queued tenant job or integration has been written, so payload validation
-  and context clearing exist as a service contract but are untested in a real job.
+- The tenant job base is tested with the real database worker; billing/PDF
+  background jobs and production worker supervision remain follow-ups.
 - No cross-council reporting/authority model.
 - No consolidations, eliminations or disclosure-note engine.
 - No licence, procurement, stores, asset, fleet, HR/payroll or land-allocation

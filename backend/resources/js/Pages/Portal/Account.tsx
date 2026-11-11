@@ -6,10 +6,11 @@ import { formatDate, formatDateTime, money } from '../../lib';
 type Bill = { id: string; number: string; service: string; period: string; total_minor: number; balance_minor: number; status: string; due_date: string | null; explanation: any[] };
 type Payment = { number: string; receipt: string | null; amount_minor: number; method: string; received_at: string | null };
 
-export default function PortalAccount({ account, bills, payments }: { account: { id: string; number: string; type: string; property: string | null; address: string | null; outstanding_minor: number; currency: string }; bills: Bill[]; payments: Payment[] }) {
+export default function PortalAccount({ account, bills, payments, refunds = [] }: { account: { id: string; number: string; type: string; property: string | null; address: string | null; outstanding_minor: number; currency: string }; bills: Bill[]; payments: Payment[]; refunds?: any[] }) {
     return (
         <PortalLayout title={`Account ${account.number}`}>
             <Head title={`Account ${account.number}`} />
+            {refunds.length > 0 && <section className="mb-4 rounded border bg-white p-4"><h2 className="font-semibold">Refund status (sandbox)</h2>{refunds.map(r => <p key={r.refund_number} className="mt-2 text-sm">{r.refund_number} · {money(r.amount_minor, account.currency)} · {r.status} · {r.customer_note} · Original receipt {r.original_receipt ?? 'opening credit'}</p>)}</section>}
 
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4">
                 <div>

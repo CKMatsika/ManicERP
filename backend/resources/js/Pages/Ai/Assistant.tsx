@@ -3,7 +3,7 @@ import AppLayout from '../../Layouts/AppLayout';
 import { Badge, EmptyState } from '../../Components/Ui';
 import type { SharedProps } from '../../lib';
 
-type Source = { id: string; title: string; version: string; effective_from: string | null; source_url: string | null; excerpt: string; score: number };
+type Source = { id: string; title: string; version: string; effective_from: string | null; source_url: string | null; excerpt: string; score: number; authority_label: string; section_ref: string | null; page_ref: string | null; applicability_status: string; source_hash?: string | null };
 
 export default function Assistant({
     question,
@@ -36,7 +36,7 @@ export default function Assistant({
                 <p className="font-medium">Assistance only, never an official decision.</p>
                 <p>{disclaimer}</p>
                 <p className="mt-1 text-xs">
-                    Provider generation: {enabled ? 'enabled' : 'disabled'} · sources are restricted to approved policy documents for this council.
+                    Provider generation: {enabled ? 'enabled' : 'disabled'} · sources are restricted to approved policy and licence configurations for this council.
                     {budgetRemainingMinor !== null ? ` Budget remaining: ${(budgetRemainingMinor / 100).toFixed(2)}.` : ''}
                 </p>
             </div>
@@ -81,6 +81,8 @@ export default function Assistant({
                                             <Badge tone="sky">v{source.version}</Badge>
                                         </div>
                                         <p className="text-xs text-slate-500">Effective {source.effective_from ?? 'not stated'}</p>
+                                        <p className="text-xs font-medium">{source.authority_label} · §{source.section_ref ?? 'unspecified'} · {source.page_ref ?? 'page unspecified'} · {source.applicability_status}</p>
+                                        {source.source_hash && <p className="text-[10px] text-slate-500">Source SHA-256: {source.source_hash}</p>}
                                         <p className="mt-1 text-slate-700">{source.excerpt}</p>
                                         {source.source_url && (
                                             <Link href={source.source_url} className="mt-1 inline-block text-xs text-teal-700 hover:underline">Source reference</Link>

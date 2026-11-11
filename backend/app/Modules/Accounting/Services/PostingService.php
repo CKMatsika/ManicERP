@@ -232,6 +232,9 @@ class PostingService
 
     public function reverse(JournalEntry $entry, string $reason, string $reversalDate, ?string $userId = null): JournalEntry
     {
+        if (in_array($entry->source_type, ['opening_customer_batch', 'opening_gl_batch', 'refund', 'allocation', 'allocation_reversal'], true)) {
+            throw new \DomainException('This operational journal requires a controlled correction that also reconciles its subledger; generic reversal is unavailable.');
+        }
         if (! $entry->isPosted()) {
             throw new \DomainException('Only posted journal entries can be reversed.');
         }
@@ -308,7 +311,7 @@ class PostingService
      * @param  array<string, string>  $dimensions
      * @return array<string, string>
      */
-    private function validateDimensions(array $dimensions, string $entryDate): array
+    public function validateDimensions(array $dimensions, string $entryDate): array
     {
         if ($dimensions === []) {
             return [];

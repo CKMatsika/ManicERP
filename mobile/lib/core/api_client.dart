@@ -32,12 +32,51 @@ class ApiClient {
     return _send(() => _client.get(Uri.parse('$baseUrl$path'), headers: _headers));
   }
 
+  Future<List<int>> download(String path) async {
+    late http.Response response;
+    try {
+      response = await _client.get(Uri.parse('$baseUrl$path'), headers: _headers).timeout(const Duration(seconds: 45));
+    } on SocketException {
+      throw const ApiException('You appear to be offline. Check your connection and retry.', 0);
+    } on HttpException {
+      throw const ApiException('The server could not be reached. Please retry.', 0);
+    }
+    if (response.statusCode >= 200 && response.statusCode < 300) return response.bodyBytes;
+    if (response.statusCode == 401) _token = null;
+    final decoded = response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body);
+    final message = decoded is Map<String, dynamic> ? (decoded['message']?.toString() ?? 'Download failed.') : 'Download failed.';
+    throw ApiException(message, response.statusCode);
+  }
+
   Future<Map<String, dynamic>> post(String path, Map<String, dynamic> body) async {
     return _send(() => _client.post(
           Uri.parse('$baseUrl$path'),
           headers: _headers,
           body: jsonEncode(body),
         ));
+  }
+
+  Future<Map<String, dynamic>> upload(String path, {required String filePath, required String fileName, required Map<String, String> fields}) async {
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'));
+    request.headers.addAll({'Accept': 'application/json', if (_token != null) 'Authorization': 'Bearer $_token'});
+    request.fields.addAll(fields);
+    request.files.add(await http.MultipartFile.fromPath('file', filePath, filename: fileName));
+    late http.StreamedResponse streamed;
+    try {
+      streamed = await request.send().timeout(const Duration(seconds: 45));
+    } on SocketException {
+      throw const ApiException('You appear to be offline. Check your connection and retry.', 0);
+    } on HttpException {
+      throw const ApiException('The server could not be reached. Please retry.', 0);
+    }
+    final response = await http.Response.fromStream(streamed);
+    final decoded = response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return decoded is Map<String, dynamic> ? decoded : {'data': decoded};
+    }
+    if (response.statusCode == 401) _token = null;
+    final message = decoded is Map<String, dynamic> ? (decoded['message']?.toString() ?? 'Upload failed.') : 'Upload failed.';
+    throw ApiException(message, response.statusCode);
   }
 
   Future<Map<String, dynamic>> delete(String path) async {

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Platform\Models\Council;
 use App\Modules\Platform\Models\Membership;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -73,6 +74,11 @@ class TenantManager
 
         $this->council = $council;
         $this->membership = $membership;
+
+        Context::add([
+            'council' => $council->code,
+            'tenant_database' => $council->database_name,
+        ]);
     }
 
     /**
@@ -87,6 +93,11 @@ class TenantManager
 
         $this->council = $council;
         $this->membership = $membership;
+
+        Context::add([
+            'council' => $council->code,
+            'tenant_database' => $council->database_name,
+        ]);
     }
 
     /**
@@ -97,16 +108,23 @@ class TenantManager
     {
         $previousCouncil = $this->council;
         $previousMembership = $this->membership;
+        $previousContext = Context::all();
+        $previousHiddenContext = Context::allHidden();
 
         try {
+            Context::flush();
             $this->connect($council);
 
             return $callback($council);
         } finally {
             if ($previousCouncil instanceof Council) {
                 $this->connect($previousCouncil, $previousMembership);
+                Context::flush();
+                Context::add($previousContext);
+                Context::addHidden($previousHiddenContext);
             } else {
                 $this->clear();
+                Context::flush();
             }
         }
     }
@@ -116,6 +134,7 @@ class TenantManager
         $this->council = null;
         $this->membership = null;
         DB::purge('tenant');
+        Context::forget(['council', 'tenant_database']);
     }
 
     public function assertConnectedTo(Council $council): void

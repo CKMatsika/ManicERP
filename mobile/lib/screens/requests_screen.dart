@@ -49,7 +49,9 @@ class _RequestsScreenState extends State<RequestsScreen> {
   Future<List<ServiceRequest>> _loadRequests() async {
     final response = await widget.api.get('/api/v1/service-requests');
     final data = (response['data'] as List<dynamic>? ?? const []);
-    return data.map((item) => ServiceRequest.fromJson(item as Map<String, dynamic>)).toList();
+    return data
+        .map((item) => ServiceRequest.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   Future<void> _loadDraft() async {
@@ -111,7 +113,8 @@ class _RequestsScreenState extends State<RequestsScreen> {
         'description': _description.text.trim(),
       });
 
-      final reference = (response['data'] as Map<String, dynamic>?)?['reference'];
+      final reference =
+          (response['data'] as Map<String, dynamic>?)?['reference'];
 
       setState(() {
         _message = 'Request $reference submitted.';
@@ -124,7 +127,8 @@ class _RequestsScreenState extends State<RequestsScreen> {
     } on ApiException catch (error) {
       if (error.statusCode == 0) {
         await _saveDraft();
-        setState(() => _message = 'Offline: draft saved on this device and not yet submitted.');
+        setState(() => _message =
+            'Offline: draft saved on this device and not yet submitted.');
       } else {
         setState(() => _error = error.message);
       }
@@ -144,64 +148,87 @@ class _RequestsScreenState extends State<RequestsScreen> {
             Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(8)),
-              child: const Text('An unsent draft is stored on this device. Retry when you are online.', style: TextStyle(fontSize: 12)),
+              decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(8)),
+              child: const Text(
+                  'An unsent draft is stored on this device. Retry when you are online.',
+                  style: TextStyle(fontSize: 12)),
             ),
           if (widget.accounts.isNotEmpty)
             DropdownButtonFormField<String>(
-              value: _accountId,
-              decoration: const InputDecoration(labelText: 'Account (optional)', border: OutlineInputBorder()),
+              initialValue: _accountId,
+              decoration: const InputDecoration(
+                  labelText: 'Account (optional)',
+                  border: OutlineInputBorder()),
               items: [
                 for (final account in widget.accounts)
-                  DropdownMenuItem(value: account.id, child: Text(account.accountNumber)),
+                  DropdownMenuItem(
+                      value: account.id, child: Text(account.accountNumber)),
               ],
               onChanged: (value) => setState(() => _accountId = value),
             ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: _category,
-            decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+            initialValue: _category,
+            decoration: const InputDecoration(
+                labelText: 'Category', border: OutlineInputBorder()),
             items: const [
-              DropdownMenuItem(value: 'billing_dispute', child: Text('Billing dispute')),
+              DropdownMenuItem(
+                  value: 'billing_dispute', child: Text('Billing dispute')),
               DropdownMenuItem(value: 'leak', child: Text('Water leak')),
-              DropdownMenuItem(value: 'water_interruption', child: Text('Water interruption')),
-              DropdownMenuItem(value: 'refuse', child: Text('Refuse collection')),
+              DropdownMenuItem(
+                  value: 'water_interruption',
+                  child: Text('Water interruption')),
+              DropdownMenuItem(
+                  value: 'refuse', child: Text('Refuse collection')),
               DropdownMenuItem(value: 'complaint', child: Text('Complaint')),
               DropdownMenuItem(value: 'other', child: Text('Other')),
             ],
-            onChanged: (value) => setState(() => _category = value ?? 'billing_dispute'),
+            onChanged: (value) =>
+                setState(() => _category = value ?? 'billing_dispute'),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _subject,
-            decoration: const InputDecoration(labelText: 'Subject', border: OutlineInputBorder()),
+            decoration: const InputDecoration(
+                labelText: 'Subject', border: OutlineInputBorder()),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _description,
             minLines: 3,
             maxLines: 6,
-            decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+            decoration: const InputDecoration(
+                labelText: 'Description', border: OutlineInputBorder()),
           ),
           const SizedBox(height: 12),
-          if (_error != null) Text(_error!, style: const TextStyle(color: Color(0xFFB91C1C))),
+          if (_error != null)
+            Text(_error!, style: const TextStyle(color: Color(0xFFB91C1C))),
           if (_message != null) Text(_message!),
           const SizedBox(height: 12),
-          FilledButton(onPressed: _busy ? null : _submit, child: const Text('Submit request')),
+          FilledButton(
+              onPressed: _busy ? null : _submit,
+              child: const Text('Submit request')),
           const Divider(height: 32),
-          const Text('Submitted requests', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const Text('Submitted requests',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           FutureBuilder<List<ServiceRequest>>(
             future: _requests,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()));
+                return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator()));
               }
               if (snapshot.hasError) {
                 return Text('Could not load requests: ${snapshot.error}');
               }
               final requests = snapshot.data ?? [];
               if (requests.isEmpty) {
-                return const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('No requests yet.'));
+                return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('No requests yet.'));
               }
               return Column(
                 children: [
@@ -209,7 +236,8 @@ class _RequestsScreenState extends State<RequestsScreen> {
                     ListTile(
                       dense: true,
                       title: Text(request.subject),
-                      subtitle: Text('${request.reference} • ${request.category} • ${request.status}'),
+                      subtitle: Text(
+                          '${request.reference} • ${request.category} • ${request.status}'),
                     ),
                 ],
               );

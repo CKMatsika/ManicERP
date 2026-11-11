@@ -3,8 +3,10 @@
 namespace App\Modules\Revenue\Services;
 
 use App\Models\User;
+use App\Modules\Accounting\Models\ChartVersion;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Services\PostingService;
+use App\Modules\Accounting\Services\RevenuePolicyService;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Platform\Services\NumberSequenceService;
 use App\Modules\Revenue\Models\Bill;
@@ -34,6 +36,65 @@ class BillingService
         private readonly NumberSequenceService $sequences,
         private readonly AuditLogger $audit,
     ) {}
+
+    /**
+     * Issue an idempotent one-off licence fee through the shared bill and
+     * journal pipeline. Licence-specific fee configuration supplies the
+     * amount; this service still owns the bill and accounting entry.
+     */
+    public function issueLicenceFee(CustomerAccount $account, int $amountMinor, string $chargeType, string $description, string $idempotencyKey, ?User $user = null): Bill
+    {
+        if ($amountMinor <= 0 || $account->status !== 'active') {
+            throw new \DomainException('A positive licence fee and active customer account are required.');
+        }
+
+        $existing = Bill::where('licence_application_key', $idempotencyKey)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        return DB::connection('tenant')->transaction(function () use ($account, $amountMinor, $chargeType, $description, $idempotencyKey, $user) {
+            $existing = Bill::where('licence_application_key', $idempotencyKey)->lockForUpdate()->first();
+            if ($existing) {
+                return $existing;
+            }
+
+            $date = CarbonImmutable::now()->toDateString();
+            $year = CarbonImmutable::parse($date)->format('Y');
+            $bill = Bill::create([
+                'bill_number' => $this->sequences->next("bill:{$year}", "BILL-{$year}", 6, $year),
+                'customer_account_id' => $account->id,
+                'service_type' => 'licence',
+                'period_start' => $date,
+                'period_end' => $date,
+                'issue_date' => $date,
+                'due_date' => CarbonImmutable::parse($date)->addDays((int) config('accounting.bill_default_due_days', 30))->toDateString(),
+                'status' => 'issued',
+                'currency_code' => $account->currency_code,
+                'total_minor' => $amountMinor,
+                'paid_minor' => 0,
+                'balance_minor' => $amountMinor,
+                'calculation_snapshot' => ['licence_application_key' => $idempotencyKey, 'one_off' => true],
+                'licence_application_key' => $idempotencyKey,
+                'approved_by' => $user?->getKey(),
+                'approved_at' => now(),
+            ]);
+            $line = [
+                'charge_type' => $chargeType,
+                'description' => $description,
+                'quantity' => 1,
+                'unit_rate_minor' => $amountMinor,
+                'amount_minor' => $amountMinor,
+                'dimensions' => [],
+            ];
+            BillLine::create(['bill_id' => $bill->id, ...$line]);
+            $journal = $this->postBillJournal($bill, [$line]);
+            $bill->forceFill(['journal_entry_id' => $journal->id])->save();
+            $this->audit->record(action: 'revenue.billing.one_off_issued', subject: $bill, after: ['bill_number' => $bill->bill_number, 'amount_minor' => $amountMinor, 'charge_type' => $chargeType], module: 'revenue');
+
+            return $bill;
+        });
+    }
 
     public function preview(
         string $serviceType,
@@ -313,17 +374,30 @@ class BillingService
 
         $debits = [];
         $credits = [];
+        $policySnapshot = [];
 
         foreach ($lines as $line) {
             $chargeType = $line['charge_type'] ?? 'rates';
-            $receivable = $receivableByType[$chargeType] ?? $receivableByType['rates'];
-            $revenue = $revenueByType[$chargeType] ?? $revenueByType['rates'];
+            $policy = app(RevenuePolicyService::class)->resolve($chargeType, $bill->issue_date->toDateString());
+            if (! $policy && ! ChartVersion::where('status', 'active')->where('production_blocker', true)->exists()) {
+                throw new \DomainException('An approved effective revenue policy is required for production billing.');
+            }
+            $receivable = $policy?->receivable_account_code ?? ($receivableByType[$chargeType] ?? $receivableByType['rates']);
+            $revenue = $policy
+                ? ($policy->recognition_method === 'immediate' ? $policy->revenue_account_code : $policy->deferred_account_code)
+                : ($revenueByType[$chargeType] ?? $revenueByType['rates']);
+            $policySnapshot[] = ['charge_type' => $chargeType, 'policy_id' => $policy?->id, 'version' => $policy?->version,
+                'recognition_method' => $policy?->recognition_method ?? 'demonstration_immediate', 'debit' => $receivable, 'credit' => $revenue,
+                'revenue_account_code' => $policy?->revenue_account_code ?? $revenue, 'recognition_rule' => $policy?->recognition_rule];
 
             $debits[$receivable] = ($debits[$receivable] ?? 0) + (int) $line['amount_minor'];
             $credits[$revenue] = ($credits[$revenue] ?? 0) + (int) $line['amount_minor'];
         }
 
         $journalLines = [];
+        $bill->forceFill(['calculation_snapshot' => [...($bill->calculation_snapshot ?? []), 'revenue_policies' => $policySnapshot],
+            'revenue_policy_id' => count($policySnapshot) === 1 ? $policySnapshot[0]['policy_id'] : null,
+            'revenue_recognition_method' => count($policySnapshot) === 1 ? $policySnapshot[0]['recognition_method'] : 'mixed'])->save();
 
         foreach ($debits as $code => $amount) {
             $journalLines[] = ['account_code' => $code, 'debit_minor' => $amount, 'memo' => "Bill {$bill->bill_number}"];

@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Modules\Accounting\Models\AccountingSourceDocument;
 use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Services\AccountingSourceService;
 use App\Modules\Accounting\Services\ReportingService;
+use App\Modules\Accounting\Services\RevenuePolicyService;
 use App\Modules\Platform\Models\Council;
 use App\Modules\Platform\Models\Membership;
 use App\Modules\Revenue\Models\AccountTariff;
@@ -124,6 +127,31 @@ class BillingTest extends TestCase
 
         $report = app(ReportingService::class)->trialBalance('2026-03-31');
         $this->assertTrue($report['totals']['balanced']);
+    }
+
+    public function test_approved_deferred_policy_bills_to_liability_without_recognising_revenue(): void
+    {
+        $customer = $this->prepareWaterCustomer();
+        $this->useCouncil($this->council, $this->adminMembership);
+        app(AccountingSourceService::class)->seed();
+        $policy = app(RevenuePolicyService::class)->draft([
+            'charge_type' => 'water', 'recognition_method' => 'deferred', 'receivable_account_code' => '1320',
+            'deferred_account_code' => '2050', 'revenue_account_code' => '4020', 'effective_from' => '2026-01-01',
+            'source_document_id' => AccountingSourceDocument::where('internal_title', 'Zimbabwe Financial Reporting Manual')->value('id'),
+            'source_ref' => 'Revenue §22.4 / PDF pp.96-97', 'notes' => 'Test policy: binding arrangement; service compliance obligation is not yet satisfied.',
+            'recognition_rule' => ['trigger_event' => 'manual_evidence', 'description' => 'Recognize upon evidenced satisfaction of the service obligation.', 'evidence_required' => true],
+        ], $this->admin);
+        app(RevenuePolicyService::class)->approve($policy, $this->approver);
+        $run = app(BillingService::class)->preview('water', '2026-03-01', '2026-03-31', ['idempotency_key' => 'deferred-policy'], $this->admin);
+        app(BillingService::class)->approve($run, $this->approver);
+        app(BillingService::class)->post($run, $this->approver);
+        $bill = Bill::where('customer_account_id', $customer['account']->id)->firstOrFail();
+        $this->assertSame($policy->id, $bill->revenue_policy_id);
+        $this->assertSame('deferred', $bill->revenue_recognition_method);
+        $journal = JournalEntry::with('lines.account')->findOrFail($bill->journal_entry_id);
+        $this->assertSame(2950, $journal->lines->where('account.code', '2050')->sum('credit_minor'));
+        $this->assertSame(0, $journal->lines->where('account.code', '4020')->sum('credit_minor'));
+        $this->assertSame($policy->id, $bill->calculation_snapshot['revenue_policies'][0]['policy_id']);
     }
 
     public function test_a_billing_run_cannot_be_approved_by_its_preparer(): void

@@ -81,6 +81,15 @@ class AccountingStandardsService
                 'notes' => 'Leases are not implemented. No lease accounting policy has been approved.',
             ],
             [
+                'code' => 'IPSAS 44',
+                'title' => 'Non-current Assets Held for Sale and Discontinued Operations',
+                'edition' => 'planning assumption',
+                'international_effective_from' => null,
+                'transition_method' => null,
+                'affected_workflows' => ['assets', 'disposals', 'disclosures'],
+                'notes' => 'Listed in ZFRM 1.3.5 as early adopted. No asset disposal workflow is implemented and the standard remains unverified.',
+            ],
+            [
                 'code' => 'IPSAS 41',
                 'title' => 'Financial Instruments',
                 'edition' => '2018 issue (planning assumption)',

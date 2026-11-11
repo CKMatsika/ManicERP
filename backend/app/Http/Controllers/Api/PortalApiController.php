@@ -127,6 +127,9 @@ class PortalApiController extends Controller
             'account_id' => ['required', 'string'],
             'amount' => ['nullable', 'string', 'max:20'],
             'bill_id' => ['nullable', 'string'],
+            'gateway' => ['nullable', 'string', 'in:sandbox,paynow'],
+            'payment_method' => ['nullable', 'string', 'in:ecocash,onemoney,card'],
+            'phone' => ['nullable', 'string', 'max:30'],
             'idempotency_key' => ['required', 'string', 'max:191'],
         ]);
 
@@ -148,7 +151,22 @@ class PortalApiController extends Controller
             return response()->json(['message' => 'Amount must be greater than zero.'], 422);
         }
 
-        $intent = $this->payments->createIntent($account, $amount->minor, 'mobile', 'sandbox', $data['idempotency_key'], $request->user());
+        $gateway = $data['gateway'] ?? 'paynow';
+        $metadata = [
+            'payment_method' => $data['payment_method'] ?? 'ecocash',
+            'phone' => $data['phone'] ?? '',
+            'bill_id' => $data['bill_id'] ?? null,
+        ];
+
+        $intent = $this->payments->createIntent(
+            $account,
+            $amount->minor,
+            'mobile',
+            $gateway,
+            $data['idempotency_key'],
+            $request->user(),
+            $metadata
+        );
 
         return response()->json([
             'data' => [

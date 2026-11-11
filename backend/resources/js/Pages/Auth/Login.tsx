@@ -1,6 +1,7 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 
 export default function Login() {
+    const { flash } = usePage<{ flash: { status?: string } }>().props;
     const { data, setData, post, processing, errors } = useForm({
         email: '',
         password: '',
@@ -24,6 +25,7 @@ export default function Login() {
                     </div>
 
                     <form onSubmit={submit} className="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                        {flash.status && <div role="status" className="rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">{flash.status}</div>}
                         {errors.email && <div className="rounded border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-800">{errors.email}</div>}
 
                         <div>
@@ -65,14 +67,9 @@ export default function Login() {
                             {processing ? 'Signing in...' : 'Sign in'}
                         </button>
 
-                        <p className="text-center text-xs text-slate-500">
-                            Accounts are issued by your council. Contact the revenue office if you cannot sign in.
-                        </p>
+                        <p className="text-center text-xs text-slate-500">New citizen? <a className="font-medium text-teal-800 underline" href="/register">Create an account</a>. Registration does not automatically grant access to council accounts.</p>
                     </form>
 
-                    <p className="mt-4 text-center text-xs text-slate-500">
-                        Demonstration deployments use seeded credentials documented in the project README. They must be changed before any real use.
-                    </p>
                 </div>
             </div>
         </>

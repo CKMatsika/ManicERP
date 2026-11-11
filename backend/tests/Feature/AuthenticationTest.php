@@ -64,6 +64,25 @@ class AuthenticationTest extends TestCase
         $this->get('/security/mfa/setup')->assertOk();
     }
 
+    public function test_privileged_user_can_enrol_mfa_through_the_setup_confirmation_flow(): void
+    {
+        $user = $this->makeUser('mfa-enrol@test.local');
+        $role = $this->makeRole($this->council, 'council_admin', ['*'], requiresMfa: true);
+        $this->makeMembership($user, $this->council, $role);
+
+        $this->post('/login', ['email' => 'mfa-enrol@test.local', 'password' => 'Secret!12345'])
+            ->assertRedirect('/security/mfa/setup');
+        $this->get('/security/mfa/setup')->assertOk();
+        $secret = session('mfa_setup_secret');
+        $this->assertNotEmpty($secret);
+
+        $this->post('/security/mfa/setup', ['code' => app(TotpService::class)->code($secret)])
+            ->assertRedirect('/home');
+
+        $this->assertTrue($user->fresh()->hasMfaEnabled());
+        $this->get('/dashboard')->assertOk();
+    }
+
     public function test_an_enrolled_privileged_user_is_challenged_for_a_code(): void
     {
         $user = $this->makeUser('mfa@test.local');
@@ -85,6 +104,23 @@ class AuthenticationTest extends TestCase
             ->assertRedirect('/dashboard');
 
         $this->get('/dashboard')->assertOk();
+    }
+
+    public function test_expired_privileged_mfa_session_requires_a_fresh_challenge(): void
+    {
+        $user = $this->makeUser('expired-mfa@test.local');
+        $role = $this->makeRole($this->council, 'finance_approver', ['*'], requiresMfa: true);
+        $this->makeMembership($user, $this->council, $role);
+        $user->forceFill(['mfa_secret' => app(TotpService::class)->generateSecret(), 'mfa_confirmed_at' => now()])->save();
+
+        $this->actingAs($user)
+            ->withSession([
+                'council_code' => $this->council->code,
+                'mfa_verified_user' => $user->id,
+                'mfa_verified_at' => time() - 43201,
+            ])
+            ->get('/dashboard')
+            ->assertRedirect('/security/mfa/challenge');
     }
 
     public function test_a_cashier_cannot_post_journals(): void

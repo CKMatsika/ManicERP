@@ -12,7 +12,9 @@ class Bill extends TenantModel
         'bill_number', 'customer_account_id', 'billing_run_id', 'service_type', 'period_start',
         'period_end', 'issue_date', 'due_date', 'status', 'currency_code',
         'total_minor', 'paid_minor', 'balance_minor', 'calculation_snapshot',
-        'journal_entry_id', 'approved_by', 'approved_at',
+        'journal_entry_id', 'approved_by', 'approved_at', 'origin',
+        'migration_batch_id', 'revenue_policy_id', 'revenue_recognition_method',
+        'licence_application_key',
     ];
 
     protected function casts(): array
