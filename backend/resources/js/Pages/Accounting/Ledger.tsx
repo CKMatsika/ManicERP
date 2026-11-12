@@ -7,12 +7,14 @@ import Icon from '../../Components/Icon';
 
 export default function Ledger({
     account,
+    accounts = [],
     from,
     to,
     rows = [],
     balance_minor = 0,
 }: {
     account: string;
+    accounts?: Array<{ code: string; name: string }>;
     from: string;
     to: string;
     rows: any[];
@@ -91,13 +93,27 @@ export default function Ledger({
                     <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-4 text-xs text-slate-700">
                         <div className="flex items-center gap-2">
                             <span className="font-medium text-slate-600">Account:</span>
-                            <input
-                                type="text"
-                                value={data.account}
-                                onChange={(e) => setData('account', e.target.value)}
-                                placeholder="Account code"
-                                className="h-9 w-32 rounded-lg border border-slate-300 px-3 text-sm font-mono focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                            />
+                            {accounts.length > 0 ? (
+                                <select
+                                    value={data.account}
+                                    onChange={(e) => setData('account', e.target.value)}
+                                    className="h-9 rounded-lg border border-slate-300 px-3 text-xs font-medium text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                                >
+                                    {accounts.map((acc) => (
+                                        <option key={acc.code} value={acc.code}>
+                                            {acc.code} · {acc.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <input
+                                    type="text"
+                                    value={data.account}
+                                    onChange={(e) => setData('account', e.target.value)}
+                                    placeholder="Account code"
+                                    className="h-9 w-32 rounded-lg border border-slate-300 px-3 text-sm font-mono focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                                />
+                            )}
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="font-medium text-slate-600">Date from:</span>

@@ -318,8 +318,8 @@ export default function CentralStores({ summary }: Props) {
                 title="Central stores & inventory management"
                 description="Warehouse inventory valuation, physical bin cards, goods received vouchers (GRV/GRN) and departmental stores issue notes."
                 breadcrumbs={[
-                    { label: 'Assets & supply chain', href: '/stores' },
-                    { label: 'Central stores' },
+                    { label: 'Procurement & supply chain', href: '/procurement' },
+                    { label: 'Central stores & bin cards' },
                 ]}
                 primaryAction={{
                     label: 'New stock SKU item',

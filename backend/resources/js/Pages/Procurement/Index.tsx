@@ -10,11 +10,14 @@ import { Modal, ConfirmDialog } from '../../Components/FormComponents';
 import { formatDate, formatDateTime, money, type SharedProps } from '../../lib';
 
 export default function ProcurementIndex(props: any) {
-    const { council, permissions } = usePage<SharedProps>().props;
+    const page = usePage<SharedProps>();
+    const { council, permissions } = page.props;
+    const url = page.url;
 
     const [activeTab, setActiveTab] = useState<'requisitions' | 'sourcing' | 'orders' | 'receiving' | 'invoices' | 'payments' | 'suppliers'>(() => {
         try {
-            const params = new URLSearchParams(window.location.search);
+            const search = window.location.search;
+            const params = new URLSearchParams(search);
             const tab = params.get('tab');
             if (tab && ['requisitions', 'sourcing', 'quotations', 'orders', 'receiving', 'invoices', 'payments', 'suppliers'].includes(tab)) {
                 return (tab === 'quotations' ? 'sourcing' : tab) as any;
@@ -22,6 +25,29 @@ export default function ProcurementIndex(props: any) {
         } catch { /* fallback */ }
         return 'requisitions';
     });
+
+    // Synchronize activeTab whenever the URL changes (e.g. from sidebar clicks)
+    useEffect(() => {
+        try {
+            const search = url.includes('?') ? url.substring(url.indexOf('?')) : window.location.search;
+            const params = new URLSearchParams(search);
+            const tab = params.get('tab');
+            if (tab) {
+                const mappedTab = tab === 'quotations' ? 'sourcing' : tab;
+                if (['requisitions', 'sourcing', 'orders', 'receiving', 'invoices', 'payments', 'suppliers'].includes(mappedTab)) {
+                    setActiveTab(mappedTab as any);
+                }
+            } else if (url.split('?')[0] === '/procurement') {
+                setActiveTab('requisitions');
+            }
+        } catch { /* ignore */ }
+    }, [url]);
+
+    function handleTabChange(tabId: 'requisitions' | 'sourcing' | 'orders' | 'receiving' | 'invoices' | 'payments' | 'suppliers') {
+        setActiveTab(tabId);
+        const queryTab = tabId === 'sourcing' ? 'quotations' : tabId;
+        window.history.replaceState(null, '', `/procurement?tab=${queryTab}`);
+    }
 
     // Modals state
     const [showRequisitionModal, setShowRequisitionModal] = useState(false);
@@ -360,8 +386,8 @@ export default function ProcurementIndex(props: any) {
                 title="Public procurement & supply chain (PRAZ)"
                 description="End-to-end municipal procurement cycle: budget votes, requisitions, PRAZ sourcing, purchase orders, central stores receiving (GRN), 3-way matching, and accounts payable."
                 breadcrumbs={[
-                    { label: 'Assets & supply chain', href: '/stores' },
-                    { label: 'Procurement (PRAZ)' },
+                    { label: 'Procurement & supply chain', href: '/procurement' },
+                    { label: 'Procurement cycle (PRAZ)' },
                 ]}
                 primaryAction={{
                     label: 'New purchase requisition',
@@ -399,7 +425,7 @@ export default function ProcurementIndex(props: any) {
                         <button
                             key={tab.id}
                             type="button"
-                            onClick={() => setActiveTab(tab.id as any)}
+                            onClick={() => handleTabChange(tab.id as any)}
                             className={`flex items-center gap-2 whitespace-nowrap border-b-2 py-3 text-sm font-medium transition-colors ${
                                 activeTab === tab.id
                                     ? 'border-emerald-700 text-emerald-800 font-semibold'

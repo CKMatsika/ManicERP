@@ -45,18 +45,25 @@ class ReportController extends Controller
 
     public function ledger(Request $request)
     {
-        $request->validate([
-            'account' => ['required', 'string', 'max:32'],
-        ]);
-
         $from = $request->date('from')?->toDateString() ?? now()->startOfYear()->toDateString();
         $to = $request->date('to')?->toDateString() ?? now()->toDateString();
         $account = $request->string('account')->toString();
+
+        $accounts = \Illuminate\Support\Facades\DB::connection('tenant')
+            ->table('gl_accounts')
+            ->select('code', 'name')
+            ->orderBy('code')
+            ->get();
+
+        if (empty($account)) {
+            $account = $accounts->first()?->code ?? '1000';
+        }
 
         $rows = $this->reporting->generalLedger($account, $from, $to);
 
         return Inertia::render('Accounting/Ledger', [
             'account' => $account,
+            'accounts' => $accounts,
             'from' => $from,
             'to' => $to,
             'rows' => $rows,

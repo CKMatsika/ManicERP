@@ -25,10 +25,9 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
         id: 'overview',
         title: 'Executive overview',
         icon: 'LayoutDashboard',
-        description: 'Council executive dashboard and policy guidance',
+        description: 'Council executive dashboard and strategic indicators',
         items: [
             { label: 'Executive dashboard', href: '/dashboard', icon: 'LayoutDashboard', section: 'Overview', isPrimary: true, keywords: ['home', 'kpi', 'executive', 'stats', 'council'] },
-            { label: 'AI Policy assistant', href: '/ai/assistant', icon: 'Sparkles', section: 'Tools', module: 'ai', isPrimary: true, keywords: ['by-laws', 'ai', 'statutory', 'acts', 'counsel'] },
         ],
     },
     {

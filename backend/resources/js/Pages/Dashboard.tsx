@@ -124,8 +124,6 @@ export default function Dashboard({
         <AppLayout title="Executive dashboard" breadcrumb="Overview">
             <Head title="Council Executive Dashboard" />
 
-            {council?.is_demo && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"><p><strong>Demonstration council: {council.name}.</strong> Figures use seeded municipal demonstration records.</p><span className="rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold">Demo environment</span></div>}
-
             <section aria-labelledby="dashboard-summary-title" className="mb-6">
                 <div className="mb-3 flex flex-wrap items-end justify-between gap-2"><div><h2 id="dashboard-summary-title" className="text-base font-semibold text-ink">Council at a glance</h2><p className="mt-1 text-sm text-muted">Key revenue and cash-flow figures · Updated {lastUpdatedLabel} Harare time</p></div></div>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

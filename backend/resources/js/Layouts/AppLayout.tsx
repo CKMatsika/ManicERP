@@ -12,7 +12,6 @@ import {
     HelpCircle,
     ChevronDown,
     ChevronRight,
-    Star,
     Menu,
     X,
     LogOut,
@@ -72,17 +71,6 @@ export default function AppLayout({
         return {};
     });
 
-    // Favourites list stored in localStorage
-    const [favourites, setFavourites] = useState<string[]>(() => {
-        try {
-            const saved = localStorage.getItem('manicerp_favourites');
-            if (saved) return JSON.parse(saved);
-        } catch {
-            // fallback
-        }
-        return ['/dashboard', '/accounting/reports/ledger', '/revenue/billing', '/land/gis'];
-    });
-
     // Sync rail state
     function toggleRail() {
         setIsRail((prev) => {
@@ -97,18 +85,6 @@ export default function AppLayout({
             const next = { ...prev, [groupId]: !prev[groupId] };
             try {
                 localStorage.setItem('manicerp_expanded_groups', JSON.stringify(next));
-            } catch {
-                // ignore
-            }
-            return next;
-        });
-    }
-
-    function toggleFavourite(href: string) {
-        setFavourites((prev) => {
-            const next = prev.includes(href) ? prev.filter((h) => h !== href) : [...prev, href].slice(0, 5);
-            try {
-                localStorage.setItem('manicerp_favourites', JSON.stringify(next));
             } catch {
                 // ignore
             }
@@ -303,7 +279,7 @@ export default function AppLayout({
                                         </span>
                                     </div>
                                     <span className="text-xs font-normal text-subtle block truncate">
-                                        {council?.is_demo ? 'Demonstration council' : 'Municipal ERP'}
+                                        Municipal Council ERP
                                     </span>
                                 </div>
                             )}
@@ -390,39 +366,6 @@ export default function AppLayout({
                             </button>
                         )}
 
-                        {/* Favourites Section */}
-                        {!isRail && favourites.length > 0 && (
-                            <div className="pb-2 border-b border-line/60">
-                                <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-subtle">
-                                    Favourites
-                                </p>
-                                <ul className="space-y-0.5">
-                                    {favourites.map((href) => {
-                                        const found = visibleGroups.flatMap((g) => g.items).find((entry) => entry.href === href);
-                                        if (!found) return null;
-                                        const currentBase = currentPath.split('?')[0];
-                                        const active = currentBase === found.href.split('?')[0];
-                                        return (
-                                            <li key={`fav-${href}`}>
-                                                <Link
-                                                    href={found.href}
-                                                    aria-current={active ? 'page' : undefined}
-                                                    className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition ${
-                                                        active
-                                                            ? 'bg-civic-soft font-medium text-civic'
-                                                            : 'text-slate-700 hover:bg-canvas hover:text-slate-900'
-                                                    }`}
-                                                >
-                                                    <Icon name={found.icon} className="h-3.5 w-3.5 shrink-0 text-slate-500" />
-                                                    <span className="truncate">{found.label}</span>
-                                                </Link>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        )}
-
                         {/* Full Department Accordion Groups */}
                         {!isRail && (
                             <div className="space-y-1">
@@ -503,23 +446,6 @@ export default function AppLayout({
                                                                                 {item.badge}
                                                                             </span>
                                                                         )}
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={(event) => {
-                                                                                event.preventDefault();
-                                                                                event.stopPropagation();
-                                                                                toggleFavourite(item.href);
-                                                                            }}
-                                                                            aria-label={fav ? 'Remove favourite' : 'Add favourite'}
-                                                                            title={fav ? 'Remove favourite' : 'Add favourite'}
-                                                                            className={`p-0.5 ${
-                                                                                fav
-                                                                                    ? 'text-amber-500'
-                                                                                    : 'text-slate-300 opacity-0 group-hover:opacity-100'
-                                                                            }`}
-                                                                        >
-                                                                            <Star className={`h-3 w-3 ${fav ? 'fill-amber-400' : ''}`} />
-                                                                        </button>
                                                                     </span>
                                                                 </Link>
                                                             </li>
@@ -562,7 +488,7 @@ export default function AppLayout({
                         {!isRail ? (
                             <div className="flex items-center gap-2">
                                 <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                                <span>Online · {council?.code ?? 'DEMO'}</span>
+                                <span>Operational · {council?.code ?? 'Production'}</span>
                             </div>
                         ) : (
                             <span className="h-2 w-2 rounded-full bg-emerald-500 mx-auto" title="Online"></span>
