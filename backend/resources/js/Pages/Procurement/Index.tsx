@@ -12,7 +12,16 @@ import { formatDate, formatDateTime, money, type SharedProps } from '../../lib';
 export default function ProcurementIndex(props: any) {
     const { council, permissions } = usePage<SharedProps>().props;
 
-    const [activeTab, setActiveTab] = useState<'requisitions' | 'sourcing' | 'orders' | 'receiving' | 'invoices' | 'payments' | 'suppliers'>('requisitions');
+    const [activeTab, setActiveTab] = useState<'requisitions' | 'sourcing' | 'orders' | 'receiving' | 'invoices' | 'payments' | 'suppliers'>(() => {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const tab = params.get('tab');
+            if (tab && ['requisitions', 'sourcing', 'quotations', 'orders', 'receiving', 'invoices', 'payments', 'suppliers'].includes(tab)) {
+                return (tab === 'quotations' ? 'sourcing' : tab) as any;
+            }
+        } catch { /* fallback */ }
+        return 'requisitions';
+    });
 
     // Modals state
     const [showRequisitionModal, setShowRequisitionModal] = useState(false);

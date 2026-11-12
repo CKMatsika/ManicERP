@@ -62,20 +62,14 @@ export default function AppLayout({
     const [launcherOpen, setLauncherOpen] = useState(false);
 
     // Accordion expanded groups state
-    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
+    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
         try {
-            const saved = localStorage.getItem('manicerp_expanded_sections');
+            const saved = localStorage.getItem('manicerp_expanded_groups');
             if (saved) return JSON.parse(saved);
         } catch {
             // fallback
         }
-        const initial: Record<string, boolean> = {};
-        for (const group of SIDEBAR_GROUPS) {
-            for (const item of group.items) {
-                if (item.href === currentPath) initial[`${group.id}:${item.section ?? 'Pages'}`] = true;
-            }
-        }
-        return initial;
+        return {};
     });
 
     // Favourites list stored in localStorage
@@ -89,15 +83,6 @@ export default function AppLayout({
         return ['/dashboard', '/accounting/reports/ledger', '/revenue/billing', '/land/gis'];
     });
 
-    // Sync expanded groups to localStorage
-    useEffect(() => {
-        try {
-            localStorage.setItem('manicerp_expanded_sections', JSON.stringify(expandedSections));
-        } catch {
-            // ignore
-        }
-    }, [expandedSections]);
-
     // Sync rail state
     function toggleRail() {
         setIsRail((prev) => {
@@ -108,10 +93,15 @@ export default function AppLayout({
     }
 
     function toggleGroup(groupId: string) {
-        setExpandedSections((prev) => ({
-            ...prev,
-            [groupId]: !prev[groupId],
-        }));
+        setExpandedGroups((prev) => {
+            const next = { ...prev, [groupId]: !prev[groupId] };
+            try {
+                localStorage.setItem('manicerp_expanded_groups', JSON.stringify(next));
+            } catch {
+                // ignore
+            }
+            return next;
+        });
     }
 
     function toggleFavourite(href: string) {
@@ -126,10 +116,10 @@ export default function AppLayout({
         });
     }
 
-    // Filter items based on permissions
+    // Filter items based on permissions and module activation
     function isItemVisible(item: SidebarItem): boolean {
         if (isSuperAdmin) return true;
-        if (item.module && !modules[item.module]) return false;
+        if (item.module && modules && modules[item.module] === false) return false;
         if (item.permission && !can(permissions, item.permission)) return false;
         if (item.anyPermissions && !item.anyPermissions.some((p) => can(permissions, p))) return false;
         return true;
@@ -143,24 +133,47 @@ export default function AppLayout({
         })).filter((g) => g.items.length > 0);
     }, [isSuperAdmin, modules, permissions]);
 
-    const activeModuleId = React.useMemo(() => {
+    // Active group containing current path
+    const activeGroupId = React.useMemo(() => {
+        const currentBase = currentPath.split('?')[0];
         const matching = visibleGroups.flatMap((group) => group.items.map((item) => ({ group, item })))
-            .filter(({ item }) => currentPath === item.href || currentPath.startsWith(`${item.href}/`))
+            .filter(({ item }) => {
+                const itemBase = item.href.split('?')[0];
+                return currentBase === itemBase || (itemBase !== '/' && itemBase !== '/dashboard' && currentBase.startsWith(`${itemBase}/`));
+            })
             .sort((a, b) => b.item.href.length - a.item.href.length)[0];
         if (matching) return matching.group.id;
         try {
             const stored = localStorage.getItem('manicerp_active_module');
             if (stored && visibleGroups.some((group) => group.id === stored)) return stored;
-        } catch { /* use first available module */ }
-        return visibleGroups[0]?.id ?? '';
+        } catch { /* use first available */ }
+        return visibleGroups[0]?.id ?? 'overview';
     }, [visibleGroups, currentPath]);
-    const activeModule = visibleGroups.find((group) => group.id === activeModuleId) ?? visibleGroups[0];
-    const moduleItems = activeModule?.items ?? [];
+
+    const activeGroup = visibleGroups.find((group) => group.id === activeGroupId) ?? visibleGroups[0];
+    const moduleItems = activeGroup?.items ?? [];
     const commandItems = React.useMemo(() => visibleGroups.flatMap((group) => group.items.map((item) => ({ ...item, groupTitle: group.title }))), [visibleGroups]);
+
+    // Ensure active group is automatically expanded
+    useEffect(() => {
+        if (activeGroupId) {
+            setExpandedGroups((prev) => {
+                if (prev[activeGroupId]) return prev;
+                const next = { ...prev, [activeGroupId]: true };
+                try {
+                    localStorage.setItem('manicerp_expanded_groups', JSON.stringify(next));
+                } catch {
+                    // ignore
+                }
+                return next;
+            });
+        }
+    }, [activeGroupId]);
 
     function selectModule(group: (typeof SIDEBAR_GROUPS)[number]) {
         if (!visibleGroups.some((visible) => visible.id === group.id)) return;
         localStorage.setItem('manicerp_active_module', group.id);
+        setExpandedGroups((prev) => ({ ...prev, [group.id]: true }));
         setLauncherOpen(false);
         setMobileOpen(false);
         const firstItem = group.items[0];
@@ -337,30 +350,213 @@ export default function AppLayout({
                         </div>
                     )}
 
-                    {/* Module navigation: only the selected app's pages appear here */}
-                    <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-4" aria-label="Main navigation">
-                        {!isRail && <div className="rounded-card border border-line bg-canvas p-2">
-                            <button type="button" onClick={() => setLauncherOpen(true)} className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-surface" aria-label="Open app launcher">
-                                <LayoutGrid className="h-4 w-4 shrink-0 text-civic" />
-                                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-ink">{activeModule?.title ?? 'Applications'}</span><span className="block text-xs text-muted">Switch application</span></span>
-                                <ChevronDown className="h-3.5 w-3.5 text-muted" />
+                    {/* Navigation: all municipal departments as structured collapsible accordions */}
+                    <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-3" aria-label="Main navigation">
+                        {/* Quick Workspace Switcher Button */}
+                        {!isRail && (
+                            <button
+                                type="button"
+                                onClick={() => setLauncherOpen(true)}
+                                className="flex w-full items-center justify-between rounded-card border border-line bg-canvas p-2.5 text-left transition hover:bg-surface hover:border-slate-300 group"
+                                aria-label="Open council workspace switcher"
+                            >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-civic text-white">
+                                        <Icon name={activeGroup?.icon ?? 'LayoutDashboard'} className="h-4 w-4" />
+                                    </span>
+                                    <div className="min-w-0 truncate">
+                                        <span className="block truncate text-xs font-semibold text-slate-900 group-hover:text-civic transition">
+                                            {activeGroup?.title ?? 'Workspace'}
+                                        </span>
+                                        <span className="block text-[11px] text-muted">
+                                            Switch workspace
+                                        </span>
+                                    </div>
+                                </div>
+                                <LayoutGrid className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-civic" />
                             </button>
-                        </div>}
-                        {isRail && <button type="button" onClick={() => setLauncherOpen(true)} className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg text-civic hover:bg-canvas" aria-label="Open app launcher" title="Applications"><LayoutGrid className="h-5 w-5" /></button>}
-                        {!isRail && favourites.length > 0 && <div>
-                            <p className="px-2 pb-1 text-xs font-semibold text-subtle">Favourites</p>
-                            <ul className="space-y-0.5">{favourites.map((href) => { const item = moduleItems.find((entry) => entry.href === href); if (!item) return null; const active = currentPath === item.href; return <li key={`fav-${href}`}><Link href={item.href} aria-current={active ? 'page' : undefined} className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm ${active ? 'bg-civic-soft font-medium text-civic' : 'text-slate-700 hover:bg-canvas'}`}><Icon name={item.icon} className="h-4 w-4" /><span className="truncate">{item.label}</span></Link></li>; })}</ul>
-                        </div>}
-                        {activeModule && Object.entries(moduleItems.reduce<Record<string, SidebarItem[]>>((sections, item) => { const name = item.section ?? 'Pages'; (sections[name] ??= []).push(item); return sections; }, {})).map(([section, items]) => {
-                            const sectionId = `${activeModule.id}:${section}`;
-                            const expanded = Boolean(expandedSections[sectionId]);
-                            const hasCurrent = items.some((item) => currentPath === item.href || currentPath.startsWith(`${item.href}/`));
-                            return <section key={sectionId}>
-                                <button type="button" onClick={() => toggleGroup(sectionId)} aria-expanded={expanded} className="flex w-full items-center justify-between px-2 pb-1 text-xs font-semibold text-muted hover:text-ink"><span>{section}</span>{expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}</button>
-                                {expanded && <ul className="space-y-0.5">{items.map((item) => { const active = currentPath === item.href || currentPath.startsWith(`${item.href}/`); const fav = favourites.includes(item.href); return <li key={item.href}><Link href={item.href} aria-current={active ? 'page' : undefined} className={`group flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition ${active ? 'bg-civic-soft font-medium text-civic border-l-2 border-civic pl-2.5' : 'text-slate-700 hover:bg-canvas hover:text-slate-900'}`}><span className="flex min-w-0 items-center gap-2.5"><Icon name={item.icon} className={`h-4 w-4 shrink-0 ${active ? 'text-civic' : 'text-slate-400'}`} /><span className="truncate">{item.label}</span></span><span className="flex items-center gap-1">{item.badge && <span className="rounded bg-canvas px-1.5 py-0.5 text-xs">{item.badge}</span>}<button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); toggleFavourite(item.href); }} aria-label={fav ? 'Remove favourite' : 'Add favourite'} title={fav ? 'Remove favourite' : 'Add favourite'} className={`p-0.5 ${fav ? 'text-amber-500' : 'text-slate-300 opacity-0 group-hover:opacity-100'}`}><Star className={`h-3 w-3 ${fav ? 'fill-amber-400' : ''}`} /></button></span></Link></li>; })}</ul>}
-                                {!expanded && hasCurrent && <p className="px-2 pb-1 text-xs text-civic">Current section</p>}
-                            </section>;
-                        })}
+                        )}
+
+                        {/* Rail Mode Launcher */}
+                        {isRail && (
+                            <button
+                                type="button"
+                                onClick={() => setLauncherOpen(true)}
+                                className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg text-civic hover:bg-canvas"
+                                aria-label="Open council workspace switcher"
+                                title="Switch workspace"
+                            >
+                                <LayoutGrid className="h-5 w-5" />
+                            </button>
+                        )}
+
+                        {/* Favourites Section */}
+                        {!isRail && favourites.length > 0 && (
+                            <div className="pb-2 border-b border-line/60">
+                                <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-subtle">
+                                    Favourites
+                                </p>
+                                <ul className="space-y-0.5">
+                                    {favourites.map((href) => {
+                                        const found = visibleGroups.flatMap((g) => g.items).find((entry) => entry.href === href);
+                                        if (!found) return null;
+                                        const currentBase = currentPath.split('?')[0];
+                                        const active = currentBase === found.href.split('?')[0];
+                                        return (
+                                            <li key={`fav-${href}`}>
+                                                <Link
+                                                    href={found.href}
+                                                    aria-current={active ? 'page' : undefined}
+                                                    className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition ${
+                                                        active
+                                                            ? 'bg-civic-soft font-medium text-civic'
+                                                            : 'text-slate-700 hover:bg-canvas hover:text-slate-900'
+                                                    }`}
+                                                >
+                                                    <Icon name={found.icon} className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                                                    <span className="truncate">{found.label}</span>
+                                                </Link>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* Full Department Accordion Groups */}
+                        {!isRail && (
+                            <div className="space-y-1">
+                                {visibleGroups.map((group) => {
+                                    const isExpanded = Boolean(expandedGroups[group.id]);
+                                    const isCurrentGroup = group.id === activeGroupId;
+                                    const currentBase = currentPath.split('?')[0];
+
+                                    return (
+                                        <section key={group.id} className="rounded-lg overflow-hidden">
+                                            {/* Department Header */}
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleGroup(group.id)}
+                                                aria-expanded={isExpanded}
+                                                className={`flex w-full items-center justify-between px-2 py-1.5 rounded-md text-xs font-semibold transition ${
+                                                    isCurrentGroup
+                                                        ? 'bg-slate-100/90 text-slate-900 font-bold'
+                                                        : 'text-slate-600 hover:bg-canvas hover:text-slate-900'
+                                                }`}
+                                            >
+                                                <span className="flex items-center gap-2 min-w-0">
+                                                    <Icon
+                                                        name={group.icon}
+                                                        className={`h-4 w-4 shrink-0 ${
+                                                            isCurrentGroup ? 'text-civic' : 'text-slate-400'
+                                                        }`}
+                                                    />
+                                                    <span className="truncate">{group.title}</span>
+                                                </span>
+                                                <span className="flex items-center gap-1 shrink-0 text-slate-400">
+                                                    <span className="text-[10px] tabular-nums font-normal px-1 py-0.2 rounded bg-slate-100">
+                                                        {group.items.length}
+                                                    </span>
+                                                    {isExpanded ? (
+                                                        <ChevronDown className="h-3.5 w-3.5" />
+                                                    ) : (
+                                                        <ChevronRight className="h-3.5 w-3.5" />
+                                                    )}
+                                                </span>
+                                            </button>
+
+                                            {/* Department Items */}
+                                            {isExpanded && (
+                                                <ul className="mt-0.5 space-y-0.5 pl-2 border-l border-slate-200 ml-4 py-0.5">
+                                                    {group.items.map((item) => {
+                                                        const itemBase = item.href.split('?')[0];
+                                                        const isExact = item.href.includes('?') 
+                                                            ? (window.location.pathname + window.location.search) === item.href
+                                                            : currentBase === itemBase;
+                                                        const isParent = !isExact && itemBase !== '/' && itemBase !== '/dashboard' && currentBase.startsWith(`${itemBase}/`);
+                                                        const active = isExact || isParent;
+                                                        const fav = favourites.includes(item.href);
+
+                                                        return (
+                                                            <li key={item.href}>
+                                                                <Link
+                                                                    href={item.href}
+                                                                    aria-current={active ? 'page' : undefined}
+                                                                    className={`group flex items-center justify-between rounded-md px-2 py-1.5 text-xs transition ${
+                                                                        active
+                                                                            ? 'bg-civic-soft font-medium text-civic border-l-2 border-civic -ml-2 pl-2'
+                                                                            : 'text-slate-600 hover:bg-canvas hover:text-slate-900'
+                                                                    }`}
+                                                                >
+                                                                    <span className="flex min-w-0 items-center gap-2">
+                                                                        <Icon
+                                                                            name={item.icon}
+                                                                            className={`h-3.5 w-3.5 shrink-0 ${
+                                                                                active ? 'text-civic' : 'text-slate-400 group-hover:text-slate-600'
+                                                                            }`}
+                                                                        />
+                                                                        <span className="truncate">{item.label}</span>
+                                                                    </span>
+                                                                    <span className="flex items-center gap-1 shrink-0">
+                                                                        {item.badge && (
+                                                                            <span className="rounded bg-canvas px-1 py-0.5 text-[10px] text-muted">
+                                                                                {item.badge}
+                                                                            </span>
+                                                                        )}
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(event) => {
+                                                                                event.preventDefault();
+                                                                                event.stopPropagation();
+                                                                                toggleFavourite(item.href);
+                                                                            }}
+                                                                            aria-label={fav ? 'Remove favourite' : 'Add favourite'}
+                                                                            title={fav ? 'Remove favourite' : 'Add favourite'}
+                                                                            className={`p-0.5 ${
+                                                                                fav
+                                                                                    ? 'text-amber-500'
+                                                                                    : 'text-slate-300 opacity-0 group-hover:opacity-100'
+                                                                            }`}
+                                                                        >
+                                                                            <Star className={`h-3 w-3 ${fav ? 'fill-amber-400' : ''}`} />
+                                                                        </button>
+                                                                    </span>
+                                                                </Link>
+                                                            </li>
+                                                        );
+                                                    })}
+                                                </ul>
+                                            )}
+                                        </section>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* Rail Mode Navigation */}
+                        {isRail && (
+                            <div className="space-y-2 pt-2">
+                                {visibleGroups.map((group) => {
+                                    const isCurrentGroup = group.id === activeGroupId;
+                                    return (
+                                        <button
+                                            key={group.id}
+                                            type="button"
+                                            onClick={() => selectModule(group)}
+                                            className={`mx-auto flex h-10 w-10 items-center justify-center rounded-lg transition ${
+                                                isCurrentGroup
+                                                    ? 'bg-civic-soft text-civic ring-1 ring-civic/30 font-bold'
+                                                    : 'text-slate-500 hover:bg-canvas hover:text-slate-900'
+                                            }`}
+                                            title={group.title}
+                                            aria-label={group.title}
+                                        >
+                                            <Icon name={group.icon} className="h-5 w-5" />
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </nav>                    {/* Sidebar Footer: System status & council code */}
                     <div className="border-t border-line p-3 text-xs text-muted flex items-center justify-between">
                         {!isRail ? (
@@ -403,12 +599,34 @@ export default function AppLayout({
                                 <div className="flex items-center gap-1.5 text-xs text-muted">
                                     <span>{council?.name ?? 'Council'}</span>
                                     <span>/</span>
-                                    <span>{breadcrumb ?? 'Executive'}</span>
+                                    <span className="font-medium text-slate-700">{activeGroup?.title ?? 'Executive'}</span>
+                                    {breadcrumb && breadcrumb !== activeGroup?.title && (
+                                        <>
+                                            <span>/</span>
+                                            <span>{breadcrumb}</span>
+                                        </>
+                                    )}
                                 </div>
                                 <h1 className="text-xl font-semibold tracking-tight text-ink truncate leading-tight">
                                     {title}
                                 </h1>
                             </div>
+                        </div>
+
+                        {/* Middle: Quick Workspace Switcher Capsule */}
+                        <div className="hidden lg:flex items-center">
+                            <button
+                                type="button"
+                                onClick={() => setLauncherOpen(true)}
+                                className="flex items-center gap-2 rounded-full border border-line bg-canvas px-3 py-1 text-xs text-slate-700 hover:bg-surface hover:border-slate-300 transition group shadow-2xs"
+                                title="Switch council workspace"
+                            >
+                                <span className="flex h-4 w-4 items-center justify-center rounded text-civic">
+                                    <Icon name={activeGroup?.icon ?? 'LayoutDashboard'} className="h-3.5 w-3.5" />
+                                </span>
+                                <span className="font-semibold text-slate-800">{activeGroup?.title ?? 'Executive overview'}</span>
+                                <ChevronDown className="h-3 w-3 text-slate-400 group-hover:text-slate-600" />
+                            </button>
                         </div>
 
                         {/* Right: Date, Search, Notifications, Help, User Avatar */}
