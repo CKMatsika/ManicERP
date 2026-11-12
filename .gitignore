@@ -11,3 +11,5 @@ backend/storage/pail/
 Thumbs.db
 .idea/
 .vscode/
+.anybuild/
+Anybuild.*

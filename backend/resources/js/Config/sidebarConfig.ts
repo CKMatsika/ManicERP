@@ -70,7 +70,7 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
             { label: 'Fixed assets (IPSAS 17)', href: '/assets', icon: 'Building2', section: 'Asset operations', isPrimary: true, keywords: ['asset register', 'depreciation', 'plant', 'equipment'] },
             { label: 'Central stores & bin cards', href: '/stores', icon: 'Boxes', section: 'Asset operations', isPrimary: true, keywords: ['inventory', 'stock', 'bin card', 'warehouse'] },
             { label: 'Fleet & heavy plant', href: '/fleet', icon: 'Truck', section: 'Asset operations', isPrimary: true, keywords: ['vehicles', 'plant', 'fuel coupons', 'logbook'] },
-            { label: 'Procurement (PRAZ)', href: '/procurement', icon: 'ShoppingBag', section: 'Supply chain', permission: 'procurement.reports.view', module: 'procurement', keywords: ['procurement', 'purchase orders', 'tenders', 'praz', '3-way match'] },
+            { label: 'Procurement (PRAZ)', href: '/procurement', icon: 'ShoppingBag', section: 'Supply chain', isPrimary: true, permission: 'procurement.reports.view', module: 'procurement', keywords: ['procurement', 'purchase orders', 'tenders', 'praz', '3-way match', 'requisitions', 'grn', 'receiving'] },
         ],
     },
     {

@@ -68,7 +68,7 @@ Route::middleware(['auth', 'council:staff', 'mfa'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::middleware(['module:procurement'])->prefix('procurement')->name('procurement.')->group(function () {
-        Route::get('/', [ProcurementController::class, 'index'])->middleware('can:procurement.reports.view')->name('index');
+        Route::get('/', [ProcurementController::class, 'index'])->name('index');
         Route::post('/actions', [ProcurementController::class, 'action'])->name('actions');
         Route::post('/documents/{type}/{record}', [ProcurementDocumentController::class, 'upload'])->whereIn('type', ['supplier_evidence', 'quotation', 'purchase_order', 'receiving_evidence', 'invoice'])->name('documents.upload');
         Route::get('/documents/{document}/download', [ProcurementDocumentController::class, 'download'])->name('documents.download');

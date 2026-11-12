@@ -39,7 +39,7 @@ class PermissionService
         }
 
         // Super administrator / platform admin has unconditional access to all modules and features
-        if ($user->is_platform_admin || $membership->role?->code === 'superadmin' || $user->email === 'admin@demo.manicerp.test') {
+        if ($user->is_platform_admin || in_array($membership->role?->code, ['superadmin', 'council_admin'], true) || $user->email === 'admin@demo.manicerp.test') {
             return true;
         }
 
