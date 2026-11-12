@@ -418,7 +418,6 @@ export default function AppLayout({
                                                             : currentBase === itemBase;
                                                         const isParent = !isExact && itemBase !== '/' && itemBase !== '/dashboard' && currentBase.startsWith(`${itemBase}/`);
                                                         const active = isExact || isParent;
-                                                        const fav = favourites.includes(item.href);
 
                                                         return (
                                                             <li key={item.href}>
