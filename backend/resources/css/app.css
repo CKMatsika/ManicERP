@@ -6,25 +6,30 @@
 
 @theme {
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    
-    /* Municipal Civic Tokens */
     --color-civic: #0F5C3A;
-    --color-civic-50: #F0FDF4;
-    --color-civic-100: #DCFCE7;
-    --color-civic-600: #0F5C3A;
-    --color-civic-700: #0A432A;
-    --color-civic-800: #062E1C;
-
+    --color-civic-hover: #0A432A;
+    --color-civic-soft: #EAF3EE;
     --color-canvas: #F7F8FA;
-    --color-card: #FFFFFF;
-    --color-border-card: #E5E7EB;
+    --color-surface: #FFFFFF;
+    --color-line: #E5E7EB;
+    --color-ink: #0F172A;
+    --color-muted: #475569;
+    --color-subtle: #64748B;
+    --color-success: #166534;
+    --color-warning: #92400E;
+    --color-danger: #B91C1C;
+    --radius-card: 0.625rem;
 }
 
 @layer base {
+    html {
+        font-size: 14px;
+    }
+
     body {
         font-family: var(--font-sans);
-        background-color: #F7F8FA;
-        color: #0F172A;
+        background-color: var(--color-canvas);
+        color: var(--color-ink);
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
     }
@@ -32,6 +37,14 @@
     /* Tabular numeric alignment for all finance and metrics */
     .tabular-nums {
         font-variant-numeric: tabular-nums;
+    }
+
+    button,
+    a,
+    input,
+    select,
+    textarea {
+        transition-duration: 150ms;
     }
 }
 

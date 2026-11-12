@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from '@inertiajs/react';
-import { ChevronRight, ArrowUpRight, AlertCircle, ArrowDownRight } from 'lucide-react';
+import { ChevronRight, ArrowUpRight, AlertCircle, ArrowDownRight, CheckCircle2 } from 'lucide-react';
 import Icon from './Icon';
 
 export function KpiCard({
@@ -127,19 +127,17 @@ export function NeedsAttentionPanel({
         severity?: 'warning' | 'info';
     }[];
 }) {
-    if (items.length === 0) return null;
-
     return (
         <section className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-2xs">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                    <h2 className="text-sm font-semibold text-slate-900">Items requiring municipal attention</h2>
+                    {items.length > 0 ? <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" /> : <CheckCircle2 className="h-4 w-4 text-civic shrink-0" />}
+                    <h2 className="text-sm font-semibold text-slate-900">Needs attention</h2>
                 </div>
-                <span className="text-xs text-slate-500">Live statutory cues</span>
+                <span className="text-xs text-slate-500">From current council records</span>
             </div>
 
-            <div className="divide-y divide-slate-100">
+            {items.length === 0 ? <p className="py-5 text-sm text-slate-600">No items currently need follow-up.</p> : <div className="divide-y divide-slate-100">
                 {items.map((item) => (
                     <Link
                         key={item.id}
@@ -160,7 +158,7 @@ export function NeedsAttentionPanel({
                         </div>
                     </Link>
                 ))}
-            </div>
+            </div>}
         </section>
     );
 }

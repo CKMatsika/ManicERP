@@ -2,20 +2,11 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import React, { useMemo } from 'react';
 import AppLayout from '../Layouts/AppLayout';
 import { Badge, EmptyState, statusTone } from '../Components/Ui';
-import { formatDate, formatDateTime, money, type SharedProps } from '../lib';
+import { can, formatDateTime, money, type SharedProps } from '../lib';
 import { KpiCard, DeptCard, NeedsAttentionPanel } from '../Components/DashboardComponents';
 import Icon from '../Components/Icon';
 import {
-    BookOpen,
-    Scale,
-    PieChart,
-    TrendingUp,
-    ListTree,
-    FileSpreadsheet,
     ArrowRight,
-    ShieldCheck,
-    CheckCircle2,
-    Calendar,
 } from 'lucide-react';
 
 type BillRow = {
@@ -63,6 +54,7 @@ export default function Dashboard({
     stats: {
         accounts: number;
         outstanding_minor: number;
+        outstanding_bills: number;
         collected_today_minor: number;
         billed_this_month_minor: number;
         receipts_today: number;
@@ -88,7 +80,8 @@ export default function Dashboard({
     revenueEnabled: boolean;
     accountingEnabled: boolean;
 }) {
-    const { council, displayTimezone } = usePage<SharedProps>().props;
+    const { council, displayTimezone, permissions, auth } = usePage<SharedProps>().props;
+    const allowed = (permission: string) => Boolean(auth?.is_platform_admin) || can(permissions, permission);
 
     // Last updated timestamp
     const lastUpdatedLabel = useMemo(() => {
@@ -109,9 +102,9 @@ export default function Dashboard({
         if (stats.outstanding_minor > 0) {
             items.push({
                 id: 'debt',
-                title: 'Customer rate accounts with outstanding balances',
-                description: `${money(stats.outstanding_minor, council?.currency)} in overdue bills awaiting Section 279 payment plans or credit control.`,
-                count: stats.accounts,
+                title: 'Customer bills with an outstanding balance',
+                description: `${money(stats.outstanding_minor, council?.currency)} remains across open bills for review and follow-up.`,
+                count: stats.outstanding_bills,
                 href: '/revenue/credit-control',
             });
         }
@@ -124,15 +117,6 @@ export default function Dashboard({
                 href: '/land/housing-allocations',
             });
         }
-        if (moduleMetrics?.emergency && moduleMetrics.emergency.incidents_count > 0) {
-            items.push({
-                id: 'emergency',
-                title: 'Logged emergency callouts & fire brigade responses',
-                description: `${moduleMetrics.emergency.incidents_count} incident reports on record across structural, water burst and hazard categories.`,
-                count: moduleMetrics.emergency.incidents_count,
-                href: '/emergency',
-            });
-        }
         return items;
     }, [stats, moduleMetrics, council?.currency]);
 
@@ -140,195 +124,42 @@ export default function Dashboard({
         <AppLayout title="Executive dashboard" breadcrumb="Overview">
             <Head title="Council Executive Dashboard" />
 
-            {/* Demonstration Banner (Clean, quiet warning) */}
-            {council?.is_demo && (
-                <div className="mb-6 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-amber-900 shadow-2xs">
-                    <div className="flex items-center gap-2.5">
-                        <span className="flex h-2 w-2 rounded-full bg-amber-500"></span>
-                        <p>
-                            <strong>Demonstration council: {council?.name}.</strong> All records reflect live seeded Zimbabwean municipal demonstration data.
-                        </p>
-                    </div>
-                    <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900 border border-amber-200">
-                        Demo environment
-                    </span>
-                </div>
-            )}
+            {council?.is_demo && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"><p><strong>Demonstration council: {council.name}.</strong> Figures use seeded municipal demonstration records.</p><span className="rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold">Demo environment</span></div>}
 
-            {/* 1. FINANCIAL SUMMARY (Clean white card replacing dark banner) */}
-            <section className="mb-6 rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-2xs">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <h2 className="text-lg font-semibold text-slate-900">Financial position & treasury</h2>
-                            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                                IPSAS 1 Accrual
-                            </span>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                            Real-time double-entry general ledger summary as of {formatDate(new Date().toISOString())}
-                        </p>
-                    </div>
-
-                    {/* Quiet outlined module shortcuts (40px height, line icons) */}
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Link
-                            href="/accounting/chart"
-                            className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#0F5C3A]"
-                        >
-                            <ListTree className="h-4 w-4 text-slate-500" />
-                            <span>Chart of accounts</span>
-                        </Link>
-                        <Link
-                            href="/accounting/journals"
-                            className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#0F5C3A]"
-                        >
-                            <FileSpreadsheet className="h-4 w-4 text-slate-500" />
-                            <span>Journal vouchers</span>
-                        </Link>
-                        <Link
-                            href="/accounting/reports/ledger"
-                            className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#0F5C3A]"
-                        >
-                            <BookOpen className="h-4 w-4 text-slate-500" />
-                            <span>General ledger</span>
-                        </Link>
-                        <Link
-                            href="/accounting/reports/trial-balance"
-                            className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#0F5C3A]"
-                        >
-                            <Scale className="h-4 w-4 text-slate-500" />
-                            <span>Trial balance</span>
-                        </Link>
-                        <Link
-                            href="/accounting/reports/position"
-                            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#0F5C3A] px-3 text-xs font-medium text-white hover:bg-[#0A432A] transition shadow-xs focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0F5C3A]"
-                        >
-                            <PieChart className="h-4 w-4 text-white" />
-                            <span>Balance sheet</span>
-                        </Link>
-                    </div>
-                </div>
-
-                {/* 4-column KPI row */}
-                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-lg bg-slate-50/70 p-4 border border-slate-100">
-                        <span className="text-xs font-medium text-slate-500">Total municipal assets</span>
-                        <p className="mt-1 text-2xl font-semibold text-slate-900 tabular-nums">
-                            {money(position?.assets_minor ?? 0, council?.currency)}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                            IPSAS 17 property, plant, equipment & receivables
-                        </p>
-                    </div>
-
-                    <div className="rounded-lg bg-slate-50/70 p-4 border border-slate-100">
-                        <span className="text-xs font-medium text-slate-500">Total liabilities</span>
-                        <p className="mt-1 text-2xl font-semibold text-slate-900 tabular-nums">
-                            {money(position?.liabilities_minor ?? 0, council?.currency)}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                            Payables, retentions & statutory provisions
-                        </p>
-                    </div>
-
-                    <div className="rounded-lg bg-slate-50/70 p-4 border border-slate-100">
-                        <span className="text-xs font-medium text-slate-500">Operating surplus / result</span>
-                        <p
-                            className={`mt-1 text-2xl font-semibold tabular-nums ${
-                                (position?.result_minor ?? 0) >= 0 ? 'text-[#0F5C3A]' : 'text-amber-700'
-                            }`}
-                        >
-                            {money(position?.result_minor ?? 0, council?.currency)}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                            Accrual revenue less operating expenditure
-                        </p>
-                    </div>
-
-                    <div className="rounded-lg bg-slate-50/70 p-4 border border-slate-100">
-                        <span className="text-xs font-medium text-slate-500">Cash & cash equivalents</span>
-                        <p className="mt-1 text-2xl font-semibold text-slate-900 tabular-nums">
-                            {money(accountingStats?.cash_and_bank_minor ?? 0, council?.currency)}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                            Bank balances & cashier vault liquidity
-                        </p>
-                    </div>
-                </div>
-
-                {/* Accounting balance check footnote */}
-                <div className="mt-3 flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-100">
-                    <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-[#0F5C3A]" />
-                        <span>
-                            Accounting equation balanced:{' '}
-                            <strong className="text-slate-700">Assets = Liabilities + Accumulated Surplus</strong>.
-                        </span>
-                    </div>
-                    <span>{accountingStats?.posted_journals_count ?? 0} posted journals on ledger</span>
+            <section aria-labelledby="dashboard-summary-title" className="mb-6">
+                <div className="mb-3 flex flex-wrap items-end justify-between gap-2"><div><h2 id="dashboard-summary-title" className="text-base font-semibold text-ink">Council at a glance</h2><p className="mt-1 text-sm text-muted">Key revenue and cash-flow figures · Updated {lastUpdatedLabel} Harare time</p></div></div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {revenueEnabled ? <>
+                        <KpiCard label="Active customer accounts" value={String(stats.accounts)} helperText="Active accounts on the municipal roll" icon="Users" />
+                        <KpiCard label="Outstanding customer bills" value={money(stats.outstanding_minor, council?.currency)} helperText={`${stats.outstanding_bills} bills with a balance`} icon="Receipt" />
+                        <KpiCard label="Collected today" value={money(stats.collected_today_minor, council?.currency)} helperText={`${stats.receipts_today} verified receipt${stats.receipts_today === 1 ? '' : 's'} today`} icon="Coins" trendPositive={stats.collected_today_minor > 0} />
+                        <KpiCard label="Billed this month" value={money(stats.billed_this_month_minor, council?.currency)} helperText="Bills issued this calendar month" icon="Calculator" />
+                    </> : accountingEnabled ? <>
+                        <KpiCard label="General ledger accounts" value={String(accountingStats?.gl_accounts_count ?? 0)} helperText="Configured chart of accounts" icon="ListTree" />
+                        <KpiCard label="Municipal assets" value={money(position?.assets_minor, council?.currency)} helperText="Reported assets at current period" icon="Building2" />
+                        <KpiCard label="Municipal liabilities" value={money(position?.liabilities_minor, council?.currency)} helperText="Reported obligations at current period" icon="Scale" />
+                        <KpiCard label="Cash and bank" value={money(accountingStats?.cash_and_bank_minor, council?.currency)} helperText={`${accountingStats?.posted_journals_count ?? 0} posted journals`} icon="Landmark" />
+                    </> : <div className="sm:col-span-2 xl:col-span-4 rounded-card border border-line bg-white p-5 text-sm text-muted">Enable a council module to show its operational summary here.</div>}
                 </div>
             </section>
 
-            {/* 2. REVENUE & CASHFLOW OVERVIEW */}
-            <section className="mb-6">
-                <div className="mb-3 flex items-center justify-between">
-                    <div>
-                        <h2 className="text-lg font-semibold text-slate-900">Revenue & cash flow</h2>
-                        <p className="text-xs text-slate-500">Customer rate accounts, monthly billing and verified cashier collections</p>
+            <div className="mb-6 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
+                <NeedsAttentionPanel items={attentionItems} />
+                <section aria-labelledby="quick-actions-title" className="rounded-card border border-line bg-white p-4">
+                    <div className="border-b border-line pb-3"><h2 id="quick-actions-title" className="text-sm font-semibold text-ink">Quick actions</h2><p className="mt-1 text-xs text-muted">Go directly to common council tasks.</p></div>
+                    <div className="mt-2 divide-y divide-slate-100">
+                        {[
+                            ...(revenueEnabled && allowed('revenue.account.view') ? [{ label: 'Customer accounts', href: '/revenue/accounts', icon: 'Users' }] : []),
+                            ...(revenueEnabled && allowed('revenue.tariff.view') ? [{ label: 'Billing runs', href: '/revenue/billing', icon: 'Calculator' }] : []),
+                            ...(revenueEnabled && allowed('revenue.cashier.open') ? [{ label: 'Cashier and receipts', href: '/revenue/cashier', icon: 'Coins' }] : []),
+                            ...(accountingEnabled && allowed('accounting.journal.view') ? [{ label: 'Journal vouchers', href: '/accounting/journals', icon: 'FileSpreadsheet' }] : []),
+                            ...(accountingEnabled && allowed('accounting.reports.view') ? [{ label: 'General ledger', href: '/accounting/reports/ledger', icon: 'BookOpen' }] : []),
+                            ...(allowed('procurement.reports.view') ? [{ label: 'Procurement', href: '/procurement', icon: 'ShoppingBag' }] : []),
+                        ].map((action) => <Link key={action.href} href={action.href} className="group flex items-center justify-between py-2.5 text-sm text-slate-700 hover:text-civic"><span className="flex items-center gap-2.5"><Icon name={action.icon} className="h-4 w-4 text-slate-500 group-hover:text-civic" />{action.label}</span><ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-civic" /></Link>)}
+                        {!(revenueEnabled && (allowed('revenue.account.view') || allowed('revenue.tariff.view') || allowed('revenue.cashier.open')) || accountingEnabled && (allowed('accounting.journal.view') || allowed('accounting.reports.view')) || allowed('procurement.reports.view')) && <p className="py-3 text-sm text-muted">No quick actions are available for your role.</p>}
                     </div>
-                    <span className="text-xs text-slate-500 font-medium">
-                        Last updated: today, {lastUpdatedLabel}
-                    </span>
-                </div>
-
-                {revenueEnabled ? (
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <KpiCard
-                            label="Active customer accounts"
-                            value={String(stats.accounts)}
-                            helperText="Ratepayers linked to property roll"
-                            icon="Users"
-                        />
-                        <KpiCard
-                            label="Money owed to council (outstanding)"
-                            value={money(stats.outstanding_minor, council?.currency)}
-                            helperText="Open customer bill balances"
-                            icon="Receipt"
-                        />
-                        <KpiCard
-                            label="Collected today"
-                            value={money(stats.collected_today_minor, council?.currency)}
-                            helperText={
-                                stats.receipts_today === 0
-                                    ? 'No payments collected today yet'
-                                    : `${stats.receipts_today} verified payment${stats.receipts_today === 1 ? '' : 's'}`
-                            }
-                            icon="Coins"
-                            trendPositive={stats.collected_today_minor > 0}
-                        />
-                        <KpiCard
-                            label="Billed this month"
-                            value={money(stats.billed_this_month_minor, council?.currency)}
-                            helperText="Approved municipal assessment runs"
-                            icon="Calculator"
-                        />
-                    </div>
-                ) : (
-                    <EmptyState
-                        title="Revenue module is not enabled"
-                        hint="Enable revenue in Administration → Modules if this council is licensed."
-                    />
-                )}
-            </section>
-
-            {/* 3. NEEDS ATTENTION PANEL (Uses real data only) */}
-            {attentionItems.length > 0 && (
-                <div className="mb-6">
-                    <NeedsAttentionPanel items={attentionItems} />
-                </div>
-            )}
-
+                </section>
+            </div>
             {/* 4. MUNICIPAL OPERATIONS & DEPARTMENTAL REGISTERS */}
             {moduleMetrics && (
                 <section className="mb-6">

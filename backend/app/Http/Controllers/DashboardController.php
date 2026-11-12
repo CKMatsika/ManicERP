@@ -39,6 +39,7 @@ class DashboardController extends Controller
         $stats = [
             'accounts' => 0,
             'outstanding_minor' => 0,
+            'outstanding_bills' => 0,
             'collected_today_minor' => 0,
             'billed_this_month_minor' => 0,
             'receipts_today' => 0,
@@ -50,6 +51,7 @@ class DashboardController extends Controller
         if ($revenueEnabled) {
             $stats['accounts'] = CustomerAccount::where('status', 'active')->count();
             $stats['outstanding_minor'] = (int) Bill::whereIn('status', ['issued', 'partially_paid'])->sum('balance_minor');
+            $stats['outstanding_bills'] = Bill::whereIn('status', ['issued', 'partially_paid'])->where('balance_minor', '>', 0)->count();
             $stats['collected_today_minor'] = (int) Payment::where('status', 'verified')->whereDate('received_at', today())->sum('amount_minor');
             $stats['billed_this_month_minor'] = (int) Bill::whereIn('status', ['issued', 'partially_paid', 'paid'])->whereYear('issue_date', now()->year)->whereMonth('issue_date', now()->month)->sum('total_minor');
             $stats['receipts_today'] = Payment::where('status', 'verified')->whereDate('received_at', today())->count();

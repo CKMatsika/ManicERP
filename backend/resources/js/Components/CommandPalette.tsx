@@ -1,42 +1,33 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { Search, X, ArrowRight } from 'lucide-react';
-import { SIDEBAR_GROUPS, type SidebarItem } from '../Config/sidebarConfig';
+import type { SidebarItem } from '../Config/sidebarConfig';
 import Icon from './Icon';
 
 export default function CommandPalette({
     isOpen,
     onClose,
+    items,
 }: {
     isOpen: boolean;
     onClose: () => void;
+    items: (SidebarItem & { groupTitle: string })[];
 }) {
     const [query, setQuery] = useState('');
     const [selectedIndex, setSelectedIndex] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Flatten all items with group title
-    const allItems = React.useMemo(() => {
-        const flat: (SidebarItem & { groupTitle: string })[] = [];
-        for (const group of SIDEBAR_GROUPS) {
-            for (const item of group.items) {
-                flat.push({ ...item, groupTitle: group.title });
-            }
-        }
-        return flat;
-    }, []);
-
     const filtered = React.useMemo(() => {
-        if (!query.trim()) return allItems.slice(0, 8);
+        if (!query.trim()) return items.slice(0, 8);
         const q = query.toLowerCase().trim();
-        return allItems.filter(
+        return items.filter(
             (item) =>
                 item.label.toLowerCase().includes(q) ||
                 item.groupTitle.toLowerCase().includes(q) ||
                 item.href.toLowerCase().includes(q) ||
                 (item.keywords && item.keywords.some((k) => k.toLowerCase().includes(q)))
         );
-    }, [allItems, query]);
+    }, [items, query]);
 
     useEffect(() => {
         setSelectedIndex(0);
@@ -52,11 +43,6 @@ export default function CommandPalette({
 
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                if (isOpen) onClose();
-                else onClose(); // parent handles toggle
-            }
             if (!isOpen) return;
 
             if (e.key === 'Escape') {
@@ -149,7 +135,7 @@ export default function CommandPalette({
                                         <div className="flex items-center gap-2.5 min-w-0">
                                             <div
                                                 className={`flex h-7 w-7 items-center justify-center rounded-md ${
-                                                    isSelected ? 'bg-white text-[#0F5C3A] shadow-xs' : 'bg-slate-100 text-slate-600'
+                                                    isSelected ? 'bg-white text-civic shadow-xs' : 'bg-slate-100 text-slate-600'
                                                 }`}
                                             >
                                                 <Icon name={item.icon} className="h-3.5 w-3.5" />
@@ -158,7 +144,7 @@ export default function CommandPalette({
                                                 <span className="font-medium text-slate-900 text-sm block leading-tight">
                                                     {item.label}
                                                 </span>
-                                                <span className="text-[11px] text-slate-500 block">
+                                                <span className="text-xs text-slate-500 block">
                                                     {item.groupTitle} · {item.href}
                                                 </span>
                                             </div>
@@ -172,26 +158,26 @@ export default function CommandPalette({
                 </div>
 
                 {/* Keyboard hints footer */}
-                <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/70 px-3.5 py-2 text-[11px] text-slate-500">
+                <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/70 px-3.5 py-2 text-xs text-slate-500">
                     <div className="flex items-center gap-3">
                         <span>
-                            <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-slate-600 shadow-2xs">
+                            <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-xs text-slate-600 shadow-2xs">
                                 ↑
                             </kbd>{' '}
-                            <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-slate-600 shadow-2xs">
+                            <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-xs text-slate-600 shadow-2xs">
                                 ↓
                             </kbd>{' '}
                             navigate
                         </span>
                         <span>
-                            <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-slate-600 shadow-2xs">
+                            <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-xs text-slate-600 shadow-2xs">
                                 ↵
                             </kbd>{' '}
                             select
                         </span>
                     </div>
                     <span>
-                        <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-slate-600 shadow-2xs">
+                        <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-xs text-slate-600 shadow-2xs">
                             Esc
                         </kbd>{' '}
                         close

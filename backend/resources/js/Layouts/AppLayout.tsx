@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import React, { useEffect, useState, type ReactNode } from 'react';
 import { can, type SharedProps } from '../lib';
 import { Flash } from '../Components/Ui';
@@ -7,6 +7,8 @@ import CommandPalette from '../Components/CommandPalette';
 import { SIDEBAR_GROUPS, type SidebarItem } from '../Config/sidebarConfig';
 import {
     Search,
+    Plus,
+    Bell,
     HelpCircle,
     ChevronDown,
     ChevronRight,
@@ -18,6 +20,7 @@ import {
     PanelLeftClose,
     PanelLeft,
     Clock,
+    LayoutGrid,
 } from 'lucide-react';
 
 export default function AppLayout({
@@ -32,13 +35,7 @@ export default function AppLayout({
     const { auth, council, membership, permissions, modules } = usePage<SharedProps>().props;
 
     // Super administrator check
-    const isSuperAdmin = Boolean(
-        auth?.is_platform_admin ||
-        membership?.role === 'superadmin' ||
-        membership?.role === 'admin' ||
-        auth?.email?.includes('admin') ||
-        permissions.includes('*')
-    );
+    const isSuperAdmin = Boolean(auth?.is_platform_admin || permissions.includes('*'));
 
     // Current path
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/dashboard';
@@ -58,22 +55,24 @@ export default function AppLayout({
     // User avatar dropdown open
     const [userMenuOpen, setUserMenuOpen] = useState(false);
 
+    const [newMenuOpen, setNewMenuOpen] = useState(false);
+
     // Help modal open
     const [helpOpen, setHelpOpen] = useState(false);
+    const [launcherOpen, setLauncherOpen] = useState(false);
 
     // Accordion expanded groups state
-    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
+    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
         try {
-            const saved = localStorage.getItem('manicerp_expanded_groups');
+            const saved = localStorage.getItem('manicerp_expanded_sections');
             if (saved) return JSON.parse(saved);
         } catch {
             // fallback
         }
-        // Auto-expand group containing current path
         const initial: Record<string, boolean> = {};
         for (const group of SIDEBAR_GROUPS) {
-            if (group.items.some((i) => i.href === currentPath)) {
-                initial[group.id] = true;
+            for (const item of group.items) {
+                if (item.href === currentPath) initial[`${group.id}:${item.section ?? 'Pages'}`] = true;
             }
         }
         return initial;
@@ -93,11 +92,11 @@ export default function AppLayout({
     // Sync expanded groups to localStorage
     useEffect(() => {
         try {
-            localStorage.setItem('manicerp_expanded_groups', JSON.stringify(expandedGroups));
+            localStorage.setItem('manicerp_expanded_sections', JSON.stringify(expandedSections));
         } catch {
             // ignore
         }
-    }, [expandedGroups]);
+    }, [expandedSections]);
 
     // Sync rail state
     function toggleRail() {
@@ -109,7 +108,7 @@ export default function AppLayout({
     }
 
     function toggleGroup(groupId: string) {
-        setExpandedGroups((prev) => ({
+        setExpandedSections((prev) => ({
             ...prev,
             [groupId]: !prev[groupId],
         }));
@@ -144,14 +143,56 @@ export default function AppLayout({
         })).filter((g) => g.items.length > 0);
     }, [isSuperAdmin, modules, permissions]);
 
-    // All visible items flat for favourites lookup
-    const allVisibleItems = React.useMemo(() => {
-        const flat: SidebarItem[] = [];
-        for (const g of visibleGroups) {
-            flat.push(...g.items);
+    const activeModuleId = React.useMemo(() => {
+        const matching = visibleGroups.flatMap((group) => group.items.map((item) => ({ group, item })))
+            .filter(({ item }) => currentPath === item.href || currentPath.startsWith(`${item.href}/`))
+            .sort((a, b) => b.item.href.length - a.item.href.length)[0];
+        if (matching) return matching.group.id;
+        try {
+            const stored = localStorage.getItem('manicerp_active_module');
+            if (stored && visibleGroups.some((group) => group.id === stored)) return stored;
+        } catch { /* use first available module */ }
+        return visibleGroups[0]?.id ?? '';
+    }, [visibleGroups, currentPath]);
+    const activeModule = visibleGroups.find((group) => group.id === activeModuleId) ?? visibleGroups[0];
+    const moduleItems = activeModule?.items ?? [];
+    const commandItems = React.useMemo(() => visibleGroups.flatMap((group) => group.items.map((item) => ({ ...item, groupTitle: group.title }))), [visibleGroups]);
+
+    function selectModule(group: (typeof SIDEBAR_GROUPS)[number]) {
+        if (!visibleGroups.some((visible) => visible.id === group.id)) return;
+        localStorage.setItem('manicerp_active_module', group.id);
+        setLauncherOpen(false);
+        setMobileOpen(false);
+        const firstItem = group.items[0];
+        if (firstItem) router.visit(firstItem.href);
+    }
+
+    const newActions = [
+        { label: 'New customer', href: '/revenue/accounts', permissions: ['revenue.account.view', 'revenue.account.manage'], module: 'revenue' },
+        { label: 'New bill', href: '/revenue/billing', permissions: ['revenue.tariff.view', 'revenue.billing.preview'], module: 'revenue' },
+        { label: 'New receipt', href: '/revenue/cashier', permissions: ['revenue.cashier.open'], module: 'revenue' },
+        { label: 'New journal', href: '/accounting/journals', permissions: ['accounting.journal.view', 'accounting.journal.create'], module: 'accounting' },
+        { label: 'New purchase order', href: '/procurement', permissions: ['procurement.reports.view', 'procurement.requisition.manage'], module: 'procurement' },
+        { label: 'New supplier', href: '/procurement', permissions: ['procurement.reports.view', 'procurement.supplier.manage'], module: 'procurement' },
+    ].filter((action) => action.module ? modules[action.module] && action.permissions.every((permission) => can(permissions, permission)) : action.permissions.every((permission) => can(permissions, permission)));
+
+    const hasNotifications = modules.licensing && can(permissions, 'licensing.notifications.view');
+
+    useEffect(() => {
+        function handleShellKeys(event: KeyboardEvent) {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+                event.preventDefault();
+                setCmdOpen((open) => !open);
+            }
+            if (event.key === 'Escape') {
+                setNewMenuOpen(false);
+                setUserMenuOpen(false);
+            }
         }
-        return flat;
-    }, [visibleGroups]);
+
+        window.addEventListener('keydown', handleShellKeys);
+        return () => window.removeEventListener('keydown', handleShellKeys);
+    }, []);
 
     // Date formatted for header
     const todayFormatted = React.useMemo(() => {
@@ -169,22 +210,29 @@ export default function AppLayout({
     }, []);
 
     return (
-        <div className="min-h-screen bg-[#F7F8FA] text-slate-900 flex flex-col antialiased">
+        <div className="min-h-screen bg-canvas text-ink flex flex-col antialiased">
             <a
                 href="#main-content"
-                className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[#0F5C3A] focus:shadow-md focus:outline-none focus:ring-2 focus:ring-[#0F5C3A]"
+                className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-civic focus:shadow-md focus:outline-none focus:ring-2 focus:ring-civic"
             >
                 Skip to main content
             </a>
 
             {/* Command Palette Modal */}
-            <CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} />
+            <CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} items={commandItems} />
+
+            {launcherOpen && <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 p-4 pt-12 sm:pt-20" onMouseDown={(event) => { if (event.target === event.currentTarget) setLauncherOpen(false); }}>
+                <section role="dialog" aria-modal="true" aria-labelledby="launcher-title" className="w-full max-w-3xl rounded-card border border-line bg-surface p-5 shadow-xl">
+                    <div className="mb-4 flex items-start justify-between"><div><h2 id="launcher-title" className="text-lg font-semibold text-ink">Applications</h2><p className="mt-1 text-sm text-muted">Choose a council workspace.</p></div><button type="button" onClick={() => setLauncherOpen(false)} aria-label="Close app launcher" className="rounded-md p-1.5 text-muted hover:bg-canvas"><X className="h-4 w-4" /></button></div>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{visibleGroups.map((group) => <button key={group.id} type="button" onClick={() => selectModule(group)} className={`rounded-card border p-4 text-left transition hover:border-civic hover:bg-civic-soft focus:outline-none focus:ring-2 focus:ring-civic ${activeModule?.id === group.id ? 'border-civic bg-civic-soft' : 'border-line bg-white'}`}><span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-canvas text-civic"><Icon name={group.icon} className="h-5 w-5" /></span><span className="block text-sm font-semibold text-ink">{group.title}</span><span className="mt-1 block text-xs text-muted">{group.description}</span><span className="mt-3 block text-xs text-subtle">{group.items.length} {group.items.length === 1 ? 'screen' : 'screens'}</span></button>)}</div>
+                </section>
+            </div>}
 
             {/* Help modal */}
             {helpOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setHelpOpen(false)} />
-                    <div className="relative w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl text-xs">
+                    <div className="relative w-full max-w-lg rounded-card border border-line bg-surface p-6 shadow-xl text-xs">
                         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                             <h3 className="text-base font-semibold text-slate-900">ManicERP System Guide & Legal Sources</h3>
                             <button onClick={() => setHelpOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -201,7 +249,7 @@ export default function AppLayout({
                                 <li><strong>IPSAS Standards</strong> — IPSAS 1 (Position), IPSAS 2 (Cash Flows), IPSAS 9 & 23 (Revenue), and IPSAS 17 (Property, Plant & Equipment).</li>
                                 <li><strong>Public Procurement and Disposal of Public Assets Act [Cap 22:23] (PRAZ)</strong> — 3-way matching and 10% contractor retention money.</li>
                             </ul>
-                            <div className="pt-3 border-t border-slate-100 flex justify-between items-center text-[11px] text-slate-500">
+                            <div className="pt-3 border-t border-line flex justify-between items-center text-xs text-subtle">
                                 <span>Version 2026.3 · Accrual IPSAS Edition</span>
                                 <button onClick={() => setHelpOpen(false)} className="rounded-md bg-slate-100 px-3 py-1 font-semibold text-slate-700 hover:bg-slate-200">
                                     Close
@@ -224,14 +272,14 @@ export default function AppLayout({
 
                 {/* Sidebar Component */}
                 <aside
-                    className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-[#E5E7EB] bg-white transition-all duration-200 ease-in-out lg:sticky lg:top-0 lg:h-screen shrink-0 ${
-                        mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'
-                    } ${isRail ? 'lg:w-16' : 'lg:w-64'}`}
+                    className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-line bg-surface transition-all duration-200 ease-in-out lg:sticky lg:top-0 lg:h-screen shrink-0 ${
+                        mobileOpen ? 'translate-x-0 w-60' : '-translate-x-full lg:translate-x-0'
+                    } ${isRail ? 'lg:w-16' : 'lg:w-60'}`}
                 >
                     {/* Header: Council Crest & Identity */}
-                    <div className="flex h-16 items-center justify-between border-b border-[#E5E7EB] px-3.5">
+                    <div className="flex h-16 items-center justify-between border-b border-line px-3.5">
                         <Link href="/dashboard" className="flex items-center gap-2.5 min-w-0 group">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0F5C3A] text-white shadow-xs">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-civic text-white shadow-xs">
                                 <span className="text-xs font-bold tracking-tight">M</span>
                             </div>
                             {!isRail && (
@@ -241,7 +289,7 @@ export default function AppLayout({
                                             {council?.name ?? 'ManicERP'}
                                         </span>
                                     </div>
-                                    <span className="text-[11px] font-normal text-slate-500 block truncate">
+                                    <span className="text-xs font-normal text-subtle block truncate">
                                         {council?.is_demo ? 'Demonstration council' : 'Municipal ERP'}
                                     </span>
                                 </div>
@@ -276,199 +324,49 @@ export default function AppLayout({
                             <button
                                 type="button"
                                 onClick={() => setCmdOpen(true)}
-                                className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 py-1.5 text-xs text-slate-500 hover:bg-white hover:border-slate-300 transition shadow-2xs group"
+                                className="flex w-full items-center justify-between rounded-card border border-line bg-canvas px-2.5 py-1.5 text-xs text-muted hover:bg-surface hover:border-slate-300 transition shadow-2xs group"
                             >
                                 <span className="flex items-center gap-2">
                                     <Search className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600" />
                                     <span>Search or jump to...</span>
                                 </span>
-                                <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-slate-400">
-                                    ⌘K
+                                <kbd className="rounded border border-line bg-surface px-1.5 py-0.5 text-xs text-subtle">
+                                    Ctrl K
                                 </kbd>
                             </button>
                         </div>
                     )}
 
-                    {/* Navigation Scroll Area */}
+                    {/* Module navigation: only the selected app's pages appear here */}
                     <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-4" aria-label="Main navigation">
-                        {/* Favourites Section (when not rail) */}
-                        {!isRail && favourites.length > 0 && (
-                            <div>
-                                <p className="px-2 pb-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                                    Favourites & quick access
-                                </p>
-                                <ul className="space-y-0.5">
-                                    {favourites.map((favHref) => {
-                                        const item = allVisibleItems.find((i) => i.href === favHref);
-                                        if (!item) return null;
-                                        const isActive = currentPath === item.href;
-                                        return (
-                                            <li key={`fav-${item.href}`}>
-                                                <Link
-                                                    href={item.href}
-                                                    aria-current={isActive ? 'page' : undefined}
-                                                    className={`group flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition ${
-                                                        isActive
-                                                            ? 'bg-[#0F5C3A]/10 text-[#0F5C3A] font-medium border-l-2 border-[#0F5C3A] pl-2.5'
-                                                            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-                                                    }`}
-                                                >
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        <Icon
-                                                            name={item.icon}
-                                                            className={`h-4 w-4 shrink-0 ${
-                                                                isActive ? 'text-[#0F5C3A]' : 'text-slate-500 group-hover:text-slate-700'
-                                                            }`}
-                                                        />
-                                                        <span className="truncate">{item.label}</span>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            toggleFavourite(item.href);
-                                                        }}
-                                                        className="text-amber-500 hover:text-slate-400 opacity-60 group-hover:opacity-100 p-0.5"
-                                                        title="Remove from favourites"
-                                                    >
-                                                        <Star className="h-3 w-3 fill-amber-400" />
-                                                    </button>
-                                                </Link>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        )}
-
-                        {/* Top-Level Module Groups */}
-                        {visibleGroups.map((group) => {
-                            const isExpanded = Boolean(expandedGroups[group.id]);
-                            const hasActiveItem = group.items.some((i) => i.href === currentPath);
-                            const primaryItems = group.items.filter((i) => i.isPrimary);
-                            const secondaryItems = group.items.filter((i) => !i.isPrimary);
-                            const displayedItems = isExpanded ? group.items : primaryItems.length > 0 ? primaryItems : group.items.slice(0, 3);
-
-                            if (isRail) {
-                                // Icon Rail view
-                                return (
-                                    <div key={group.id} className="relative group/rail flex flex-col items-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => toggleGroup(group.id)}
-                                            className={`flex h-10 w-10 items-center justify-center rounded-lg transition ${
-                                                hasActiveItem
-                                                    ? 'bg-[#0F5C3A]/10 text-[#0F5C3A] ring-1 ring-[#0F5C3A]/30'
-                                                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-                                            }`}
-                                            title={group.title}
-                                        >
-                                            <Icon name={group.icon} className="h-5 w-5" />
-                                        </button>
-                                    </div>
-                                );
-                            }
-
-                            // Full Expanded view
-                            return (
-                                <div key={group.id}>
-                                    {/* Group Accordion Header */}
-                                    <div className="flex items-center justify-between px-2 pb-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => toggleGroup(group.id)}
-                                            className="flex items-center gap-1.5 text-[12px] font-semibold text-slate-500 hover:text-slate-800 transition"
-                                        >
-                                            <span>{group.title}</span>
-                                            {secondaryItems.length > 0 && (
-                                                <span className="text-slate-400">
-                                                    {isExpanded ? (
-                                                        <ChevronDown className="h-3 w-3" />
-                                                    ) : (
-                                                        <ChevronRight className="h-3 w-3" />
-                                                    )}
-                                                </span>
-                                            )}
-                                        </button>
-                                    </div>
-
-                                    {/* Navigation Items List */}
-                                    <ul className="space-y-0.5">
-                                        {displayedItems.map((item) => {
-                                            const isActive = currentPath === item.href;
-                                            const isFav = favourites.includes(item.href);
-                                            return (
-                                                <li key={item.href}>
-                                                    <Link
-                                                        href={item.href}
-                                                        aria-current={isActive ? 'page' : undefined}
-                                                        className={`group flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition ${
-                                                            isActive
-                                                                ? 'bg-[#0F5C3A]/10 text-[#0F5C3A] font-medium border-l-2 border-[#0F5C3A] pl-2.5'
-                                                                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-                                                        }`}
-                                                    >
-                                                        <div className="flex items-center gap-2.5 min-w-0">
-                                                            <Icon
-                                                                name={item.icon}
-                                                                className={`h-4 w-4 shrink-0 ${
-                                                                    isActive ? 'text-[#0F5C3A]' : 'text-slate-400 group-hover:text-slate-600'
-                                                                }`}
-                                                            />
-                                                            <span className="truncate">{item.label}</span>
-                                                        </div>
-
-                                                        <div className="flex items-center gap-1">
-                                                            {item.badge && (
-                                                                <span className="rounded bg-slate-100 px-1.5 py-0.2 text-[10px] font-semibold text-slate-600">
-                                                                    {item.badge}
-                                                                </span>
-                                                            )}
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    toggleFavourite(item.href);
-                                                                }}
-                                                                className={`opacity-0 group-hover:opacity-100 p-0.5 transition ${
-                                                                    isFav ? 'text-amber-500 opacity-100' : 'text-slate-300 hover:text-amber-500'
-                                                                }`}
-                                                                title={isFav ? 'Remove favourite' : 'Star favourite'}
-                                                            >
-                                                                <Star className={`h-3 w-3 ${isFav ? 'fill-amber-400' : ''}`} />
-                                                            </button>
-                                                        </div>
-                                                    </Link>
-                                                </li>
-                                            );
-                                        })}
-
-                                        {/* "Show more" link when collapsed and items exist */}
-                                        {!isExpanded && secondaryItems.length > 0 && (
-                                            <li>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleGroup(group.id)}
-                                                    className="w-full text-left rounded-md px-2 py-1 text-xs text-slate-500 hover:text-[#0F5C3A] hover:bg-slate-50 transition"
-                                                >
-                                                    + {secondaryItems.length} more screens...
-                                                </button>
-                                            </li>
-                                        )}
-                                    </ul>
-                                </div>
-                            );
+                        {!isRail && <div className="rounded-card border border-line bg-canvas p-2">
+                            <button type="button" onClick={() => setLauncherOpen(true)} className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-surface" aria-label="Open app launcher">
+                                <LayoutGrid className="h-4 w-4 shrink-0 text-civic" />
+                                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-ink">{activeModule?.title ?? 'Applications'}</span><span className="block text-xs text-muted">Switch application</span></span>
+                                <ChevronDown className="h-3.5 w-3.5 text-muted" />
+                            </button>
+                        </div>}
+                        {isRail && <button type="button" onClick={() => setLauncherOpen(true)} className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg text-civic hover:bg-canvas" aria-label="Open app launcher" title="Applications"><LayoutGrid className="h-5 w-5" /></button>}
+                        {!isRail && favourites.length > 0 && <div>
+                            <p className="px-2 pb-1 text-xs font-semibold text-subtle">Favourites</p>
+                            <ul className="space-y-0.5">{favourites.map((href) => { const item = moduleItems.find((entry) => entry.href === href); if (!item) return null; const active = currentPath === item.href; return <li key={`fav-${href}`}><Link href={item.href} aria-current={active ? 'page' : undefined} className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm ${active ? 'bg-civic-soft font-medium text-civic' : 'text-slate-700 hover:bg-canvas'}`}><Icon name={item.icon} className="h-4 w-4" /><span className="truncate">{item.label}</span></Link></li>; })}</ul>
+                        </div>}
+                        {activeModule && Object.entries(moduleItems.reduce<Record<string, SidebarItem[]>>((sections, item) => { const name = item.section ?? 'Pages'; (sections[name] ??= []).push(item); return sections; }, {})).map(([section, items]) => {
+                            const sectionId = `${activeModule.id}:${section}`;
+                            const expanded = Boolean(expandedSections[sectionId]);
+                            const hasCurrent = items.some((item) => currentPath === item.href || currentPath.startsWith(`${item.href}/`));
+                            return <section key={sectionId}>
+                                <button type="button" onClick={() => toggleGroup(sectionId)} aria-expanded={expanded} className="flex w-full items-center justify-between px-2 pb-1 text-xs font-semibold text-muted hover:text-ink"><span>{section}</span>{expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}</button>
+                                {expanded && <ul className="space-y-0.5">{items.map((item) => { const active = currentPath === item.href || currentPath.startsWith(`${item.href}/`); const fav = favourites.includes(item.href); return <li key={item.href}><Link href={item.href} aria-current={active ? 'page' : undefined} className={`group flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition ${active ? 'bg-civic-soft font-medium text-civic border-l-2 border-civic pl-2.5' : 'text-slate-700 hover:bg-canvas hover:text-slate-900'}`}><span className="flex min-w-0 items-center gap-2.5"><Icon name={item.icon} className={`h-4 w-4 shrink-0 ${active ? 'text-civic' : 'text-slate-400'}`} /><span className="truncate">{item.label}</span></span><span className="flex items-center gap-1">{item.badge && <span className="rounded bg-canvas px-1.5 py-0.5 text-xs">{item.badge}</span>}<button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); toggleFavourite(item.href); }} aria-label={fav ? 'Remove favourite' : 'Add favourite'} title={fav ? 'Remove favourite' : 'Add favourite'} className={`p-0.5 ${fav ? 'text-amber-500' : 'text-slate-300 opacity-0 group-hover:opacity-100'}`}><Star className={`h-3 w-3 ${fav ? 'fill-amber-400' : ''}`} /></button></span></Link></li>; })}</ul>}
+                                {!expanded && hasCurrent && <p className="px-2 pb-1 text-xs text-civic">Current section</p>}
+                            </section>;
                         })}
-                    </nav>
-
-                    {/* Sidebar Footer: System status & council code */}
-                    <div className="border-t border-[#E5E7EB] p-3 text-xs text-slate-500 flex items-center justify-between">
+                    </nav>                    {/* Sidebar Footer: System status & council code */}
+                    <div className="border-t border-line p-3 text-xs text-muted flex items-center justify-between">
                         {!isRail ? (
                             <div className="flex items-center gap-2">
                                 <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                                <span className="text-[11px]">Online · {council?.code ?? 'DEMO'}</span>
+                                <span>Online · {council?.code ?? 'DEMO'}</span>
                             </div>
                         ) : (
                             <span className="h-2 w-2 rounded-full bg-emerald-500 mx-auto" title="Online"></span>
@@ -489,7 +387,7 @@ export default function AppLayout({
                 {/* Main Content Column */}
                 <div className="flex min-w-0 flex-1 flex-col">
                     {/* Top Bar Shell */}
-                    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#E5E7EB] bg-white px-4 lg:px-6">
+                    <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-line bg-surface px-4 lg:px-6">
                         {/* Left: Mobile hamburger + Breadcrumb & Title */}
                         <div className="flex items-center gap-3 min-w-0">
                             <button
@@ -502,12 +400,12 @@ export default function AppLayout({
                             </button>
 
                             <div className="min-w-0">
-                                <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                                <div className="flex items-center gap-1.5 text-xs text-muted">
                                     <span>{council?.name ?? 'Council'}</span>
                                     <span>/</span>
                                     <span>{breadcrumb ?? 'Executive'}</span>
                                 </div>
-                                <h1 className="text-xl font-semibold tracking-tight text-slate-900 truncate leading-tight">
+                                <h1 className="text-xl font-semibold tracking-tight text-ink truncate leading-tight">
                                     {title}
                                 </h1>
                             </div>
@@ -516,7 +414,7 @@ export default function AppLayout({
                         {/* Right: Date, Search, Notifications, Help, User Avatar */}
                         <div className="flex items-center gap-2.5">
                             {/* Date & Location Capsule */}
-                            <span className="hidden xl:inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600 font-medium">
+                            <span className="hidden xl:inline-flex items-center gap-1.5 rounded-full bg-canvas px-3 py-1 text-xs text-muted font-medium">
                                 <Clock className="h-3.5 w-3.5 text-slate-400" />
                                 <span>{todayFormatted} · Harare</span>
                             </span>
@@ -525,15 +423,31 @@ export default function AppLayout({
                             <button
                                 type="button"
                                 onClick={() => setCmdOpen(true)}
-                                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition shadow-2xs"
+                                className="flex items-center gap-2 rounded-card border border-line bg-surface px-3 py-2 text-xs text-muted hover:bg-canvas transition"
                                 title="Open search (Ctrl+K)"
                             >
                                 <Search className="h-3.5 w-3.5 text-slate-400" />
                                 <span className="hidden sm:inline">Search...</span>
-                                <kbd className="hidden sm:inline rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-400">
-                                    ⌘K
+                                <kbd className="hidden sm:inline rounded bg-canvas px-1.5 py-0.5 text-xs text-subtle">
+                                    Ctrl K
                                 </kbd>
                             </button>
+
+                            {newActions.length > 0 && <div className="relative">
+                                <button type="button" onClick={() => setNewMenuOpen((open) => !open)} aria-expanded={newMenuOpen} aria-haspopup="menu" className="inline-flex items-center gap-2 rounded-card bg-civic px-3 py-2 text-xs font-semibold text-white hover:bg-civic-hover focus:outline-none focus:ring-2 focus:ring-civic focus:ring-offset-2">
+                                    <Plus className="h-4 w-4" aria-hidden="true" /><span>New</span><ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                                </button>
+                                {newMenuOpen && <>
+                                    <button type="button" className="fixed inset-0 z-30 cursor-default" aria-label="Close new action menu" onClick={() => setNewMenuOpen(false)} />
+                                    <div role="menu" aria-label="Create a new record" className="absolute right-0 z-40 mt-2 w-56 rounded-card border border-line bg-surface p-1.5 shadow-lg">
+                                        {newActions.map((action) => <Link key={action.label} role="menuitem" href={action.href} onClick={() => setNewMenuOpen(false)} className="block rounded-md px-3 py-2 text-sm text-ink hover:bg-canvas focus:bg-canvas focus:outline-none">{action.label}</Link>)}
+                                    </div>
+                                </>}
+                            </div>}
+
+                            {hasNotifications && <Link href="/licensing/notifications" aria-label="Notifications" title="Notifications" className="relative rounded-card p-2 text-muted hover:bg-canvas focus:outline-none focus:ring-2 focus:ring-civic">
+                                <Bell className="h-4 w-4" aria-hidden="true" />
+                            </Link>}
 
                             {/* Help button */}
                             <button
@@ -551,16 +465,16 @@ export default function AppLayout({
                                 <button
                                     type="button"
                                     onClick={() => setUserMenuOpen((prev) => !prev)}
-                                    className="flex items-center gap-2 rounded-lg p-1 hover:bg-slate-100 transition focus:outline-none focus:ring-2 focus:ring-[#0F5C3A]"
+                                    className="flex items-center gap-2 rounded-card p-1 hover:bg-canvas transition focus:outline-none focus:ring-2 focus:ring-civic"
                                     aria-expanded={userMenuOpen}
                                     aria-haspopup="true"
                                 >
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0F5C3A] text-xs font-semibold text-white">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-civic text-xs font-semibold text-white">
                                         {auth?.name ? auth.name.charAt(0).toUpperCase() : 'U'}
                                     </div>
                                     <div className="hidden md:block text-left text-xs leading-tight">
                                         <p className="font-semibold text-slate-900 truncate max-w-[120px]">{auth?.name}</p>
-                                        <p className="text-[11px] text-slate-500 truncate max-w-[120px]">
+                                        <p className="text-xs text-muted truncate max-w-[120px]">
                                             {membership?.role_name ?? membership?.role ?? 'Council Officer'}
                                         </p>
                                     </div>
@@ -576,14 +490,14 @@ export default function AppLayout({
                                             aria-hidden="true"
                                         />
                                         <div
-                                            className="absolute right-0 mt-2 z-40 w-56 rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg text-xs"
+                                            className="absolute right-0 mt-2 z-40 w-56 rounded-card border border-line bg-surface py-1.5 shadow-lg text-xs"
                                             role="menu"
                                         >
                                             <div className="border-b border-slate-100 px-3.5 py-2">
                                                 <p className="font-semibold text-slate-900">{auth?.name}</p>
-                                                <p className="text-[11px] text-slate-500 truncate">{auth?.email}</p>
+                                                <p className="text-xs text-muted truncate">{auth?.email}</p>
                                                 <div className="mt-1.5 flex items-center gap-1">
-                                                    <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 border border-emerald-200">
+                                                    <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-xs font-semibold text-emerald-800 border border-emerald-200">
                                                         {membership?.role_name ?? 'Super Administrator'}
                                                     </span>
                                                 </div>
