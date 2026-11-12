@@ -516,14 +516,6 @@ const ICON_PATHS: Record<string, React.ReactNode> = {
             <path d="M6 12h.01M18 12h.01" />
         </>
     ),
-    Coins: (
-        <>
-            <circle cx="8" cy="8" r="6" />
-            <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
-            <path d="M7 6h1v4" />
-            <path d="m16.71 13.88.7.71-2.82 2.82" />
-        </>
-    ),
     RotateCcw: (
         <>
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -549,13 +541,6 @@ const ICON_PATHS: Record<string, React.ReactNode> = {
             <path d="M12 3v18" />
         </>
     ),
-    Receipt: (
-        <>
-            <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
-            <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
-            <path d="M12 17.5v-11" />
-        </>
-    ),
     QrCode: (
         <>
             <rect width="5" height="5" x="3" y="3" rx="1" />
@@ -570,13 +555,6 @@ const ICON_PATHS: Record<string, React.ReactNode> = {
             <path d="M16 12h1" />
             <path d="M21 12v.01" />
             <path d="M12 21v-1" />
-        </>
-    ),
-    HelpCircle: (
-        <>
-            <circle cx="12" cy="12" r="10" />
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-            <path d="M12 17h.01" />
         </>
     ),
 };
