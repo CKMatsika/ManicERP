@@ -124,8 +124,19 @@ class CouncilProvisioner
     public function databaseExists(string $name): bool
     {
         $this->assertSafeIdentifier($name);
+        $conn = config('tenancy.central_connection', config('database.default'));
+        $driver = config("database.connections.{$conn}.driver", 'pgsql');
 
-        return (bool) DB::connection('pgsql')
+        if ($driver === 'mysql') {
+            return (bool) DB::connection($conn)
+                ->selectOne('SELECT 1 FROM information_schema.schemata WHERE schema_name = ?', [$name]);
+        }
+
+        if ($driver === 'sqlite') {
+            return file_exists($name);
+        }
+
+        return (bool) DB::connection($conn)
             ->selectOne('select 1 as found from pg_database where datname = ?', [$name]);
     }
 
@@ -137,7 +148,20 @@ class CouncilProvisioner
             return;
         }
 
-        DB::connection('pgsql')->getPdo()
+        $conn = config('tenancy.central_connection', config('database.default'));
+        $driver = config("database.connections.{$conn}.driver", 'pgsql');
+
+        if ($driver === 'mysql') {
+            DB::connection($conn)->getPdo()->exec(sprintf('CREATE DATABASE IF NOT EXISTS `%s`', $name));
+            return;
+        }
+
+        if ($driver === 'sqlite') {
+            touch($name);
+            return;
+        }
+
+        DB::connection($conn)->getPdo()
             ->exec(sprintf('CREATE DATABASE "%s"', $name));
     }
 
@@ -145,7 +169,22 @@ class CouncilProvisioner
     {
         $this->assertSafeIdentifier($name);
 
-        DB::connection('pgsql')->getPdo()
+        $conn = config('tenancy.central_connection', config('database.default'));
+        $driver = config("database.connections.{$conn}.driver", 'pgsql');
+
+        if ($driver === 'mysql') {
+            DB::connection($conn)->getPdo()->exec(sprintf('DROP DATABASE IF EXISTS `%s`', $name));
+            return;
+        }
+
+        if ($driver === 'sqlite') {
+            if (file_exists($name)) {
+                unlink($name);
+            }
+            return;
+        }
+
+        DB::connection($conn)->getPdo()
             ->exec(sprintf('DROP DATABASE IF EXISTS "%s" WITH (FORCE)', $name));
     }
 

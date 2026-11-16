@@ -43,7 +43,7 @@ return new class extends Migration
             $table->string('code', 64);
             $table->string('name');
             $table->string('description')->nullable();
-            $table->jsonb('permissions')->default('[]');
+            $table->jsonb('permissions')->nullable();
             $table->boolean('requires_mfa')->default(false);
             $table->boolean('is_system')->default(false);
             $table->timestamps();

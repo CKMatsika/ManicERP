@@ -108,13 +108,13 @@ return [
         | directory; it must never be supplied by an end user.
         */
         'tenant' => [
-            'driver' => 'pgsql',
+            'driver' => env('TENANT_DB_DRIVER', env('DB_CONNECTION', 'pgsql')),
             'url' => env('TENANT_DB_URL'),
-            'host' => env('TENANT_DB_HOST', '127.0.0.1'),
-            'port' => env('TENANT_DB_PORT', '5432'),
+            'host' => env('TENANT_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('TENANT_DB_PORT', env('DB_PORT', '5432')),
             'database' => env('TENANT_DB_DATABASE'),
-            'username' => env('TENANT_DB_USERNAME', 'postgres'),
-            'password' => env('TENANT_DB_PASSWORD', ''),
+            'username' => env('TENANT_DB_USERNAME', env('DB_USERNAME', 'postgres')),
+            'password' => env('TENANT_DB_PASSWORD', env('DB_PASSWORD', '')),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,

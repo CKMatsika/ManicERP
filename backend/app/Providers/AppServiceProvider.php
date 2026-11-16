@@ -30,6 +30,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->loadMigrationsFrom(database_path('migrations/central'));
+
         // Permissions are checked against the validated membership, its role
         // and the owning module's activation state. Policies still run when
         // this returns null.
