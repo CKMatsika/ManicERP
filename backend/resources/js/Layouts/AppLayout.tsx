@@ -31,13 +31,14 @@ export default function AppLayout({
     breadcrumb?: string;
     children: ReactNode;
 }) {
-    const { auth, council, membership, permissions, modules } = usePage<SharedProps>().props;
+    const { url, props } = usePage<SharedProps>();
+    const { auth, council, membership, permissions, modules } = props;
 
     // Super administrator check
     const isSuperAdmin = Boolean(auth?.is_platform_admin || permissions.includes('*'));
 
-    // Current path
-    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/dashboard';
+    // Current path (reactive to Inertia client visits)
+    const currentPath = url || (typeof window !== 'undefined' ? window.location.pathname : '/dashboard');
 
     // Collapsed rail state (desktop: 256px vs 64px)
     const [isRail, setIsRail] = useState<boolean>(() => {
@@ -414,7 +415,7 @@ export default function AppLayout({
                                                     {group.items.map((item) => {
                                                         const itemBase = item.href.split('?')[0];
                                                         const isExact = item.href.includes('?') 
-                                                            ? (window.location.pathname + window.location.search) === item.href
+                                                            ? (url === item.href || (typeof window !== 'undefined' && (window.location.pathname + window.location.search) === item.href))
                                                             : currentBase === itemBase;
                                                         const isParent = !isExact && itemBase !== '/' && itemBase !== '/dashboard' && currentBase.startsWith(`${itemBase}/`);
                                                         const active = isExact || isParent;

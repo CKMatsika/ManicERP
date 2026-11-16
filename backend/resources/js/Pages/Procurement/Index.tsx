@@ -46,7 +46,11 @@ export default function ProcurementIndex(props: any) {
     function handleTabChange(tabId: 'requisitions' | 'sourcing' | 'orders' | 'receiving' | 'invoices' | 'payments' | 'suppliers') {
         setActiveTab(tabId);
         const queryTab = tabId === 'sourcing' ? 'quotations' : tabId;
-        window.history.replaceState(null, '', `/procurement?tab=${queryTab}`);
+        router.visit(`/procurement?tab=${queryTab}`, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
     }
 
     // Modals state
@@ -68,6 +72,9 @@ export default function ProcurementIndex(props: any) {
             preserveScroll: true,
             onSuccess: () => {
                 if (onSuccess) onSuccess();
+            },
+            onError: (err) => {
+                console.error('Procurement action error:', err);
             },
         });
     }
@@ -471,6 +478,10 @@ export default function ProcurementIndex(props: any) {
                         rowActions={requisitionActions}
                         emptyTitle="No purchase requisitions found"
                         emptyHint="Departmental officers can raise requisitions linked to active council budget votes."
+                        emptyAction={{
+                            label: 'Create purchase requisition',
+                            onClick: () => setShowRequisitionModal(true),
+                        }}
                     />
                 </div>
             )}
@@ -824,8 +835,10 @@ export default function ProcurementIndex(props: any) {
                         onSubmit={(e) => {
                             e.preventDefault();
                             const form = e.target as any;
+                            const voteLine = form.budget_line_id?.value;
+                            if (!voteLine) return;
                             executeAction('requisition.create', {
-                                budget_line_id: form.budget_line_id.value,
+                                budget_line_id: voteLine,
                                 title: form.title.value,
                                 justification: form.justification.value,
                                 estimate_minor: Math.round(parseFloat(form.estimate_usd.value || '0') * 100),
@@ -833,22 +846,34 @@ export default function ProcurementIndex(props: any) {
                         }}
                         className="space-y-4"
                     >
+                        {actionForm.hasErrors && (
+                            <div className="rounded-lg bg-rose-50 p-3 text-xs text-rose-700">
+                                {Object.values(actionForm.errors).join(', ')}
+                            </div>
+                        )}
+
                         <div>
                             <label className="block text-xs font-medium text-slate-700">
                                 Approved Council Budget Vote Line <span className="text-rose-600">*</span>
                             </label>
-                            <select
-                                name="budget_line_id"
-                                required
-                                className="mt-1 h-10 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                            >
-                                <option value="">Select budget line...</option>
-                                {allBudgetLines.map((l: any) => (
-                                    <option key={l.id} value={l.id}>
-                                        {l.budget_code} / {l.account_code} — Available: {money(l.available_minor, council?.currency)}
-                                    </option>
-                                ))}
-                            </select>
+                            {allBudgetLines.length === 0 ? (
+                                <div className="mt-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                                    No approved budget lines found. Departmental officers cannot raise requisitions without an active approved budget vote.
+                                </div>
+                            ) : (
+                                <select
+                                    name="budget_line_id"
+                                    required
+                                    className="mt-1 h-10 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                                >
+                                    <option value="">Select approved budget line...</option>
+                                    {allBudgetLines.map((l: any) => (
+                                        <option key={l.id} value={l.id}>
+                                            {l.budget_code} / {l.account_code} — Available: {money(l.available_minor, council?.currency)}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
 
                         <div>
@@ -901,9 +926,10 @@ export default function ProcurementIndex(props: any) {
                             </button>
                             <button
                                 type="submit"
-                                className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+                                disabled={actionForm.processing || allBudgetLines.length === 0}
+                                className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
                             >
-                                Create requisition
+                                {actionForm.processing ? 'Creating...' : 'Create requisition'}
                             </button>
                         </div>
                     </form>
