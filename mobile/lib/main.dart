@@ -7,11 +7,11 @@ import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 
 /// API base URL. Pass with --dart-define=API_BASE_URL=https://erp.example.org
-/// Defaults to localhost for Web, and Android emulator loopback (10.0.2.2) for mobile.
+/// Defaults to the production Laravel Cloud deployment.
 const String _configuredApiBaseUrl = String.fromEnvironment('API_BASE_URL');
 final String apiBaseUrl = _configuredApiBaseUrl.isNotEmpty
     ? _configuredApiBaseUrl
-    : (kIsWeb ? 'http://127.0.0.1:8000' : 'http://10.0.2.2:8000');
+    : 'https://manicerp-production-crwmyq.laravel.cloud';
 
 void main() {
   runApp(const ManicErpApp());
@@ -39,6 +39,10 @@ class _ManicErpAppState extends State<ManicErpApp> {
   }
 
   Future<void> _restore() async {
+    final savedUrl = await _session.readBaseUrl();
+    if (savedUrl != null && savedUrl.isNotEmpty) {
+      _api.setBaseUrl(savedUrl);
+    }
     final token = await _session.readToken();
     if (token != null) {
       _api.setToken(token);

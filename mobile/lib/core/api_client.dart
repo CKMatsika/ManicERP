@@ -10,7 +10,7 @@ import 'package:http/http.dart' as http;
 class ApiClient {
   ApiClient({required this.baseUrl, http.Client? client}) : _client = client ?? http.Client();
 
-  final String baseUrl;
+  String baseUrl;
   final http.Client _client;
   String? _token;
 
@@ -20,6 +20,10 @@ class ApiClient {
 
   void setToken(String? token) {
     _token = token;
+  }
+
+  void setBaseUrl(String url) {
+    baseUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
   }
 
   Map<String, String> get _headers => {

@@ -16,17 +16,26 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _council = TextEditingController(text: 'DEMO');
+  final _council = TextEditingController(text: 'NGEZRDC001');
   final _email = TextEditingController();
   final _password = TextEditingController();
+  late final TextEditingController _serverUrl;
+  bool _showServerSettings = false;
   bool _busy = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _serverUrl = TextEditingController(text: widget.api.baseUrl);
+  }
 
   @override
   void dispose() {
     _council.dispose();
     _email.dispose();
     _password.dispose();
+    _serverUrl.dispose();
     super.dispose();
   }
 
@@ -37,6 +46,12 @@ class _LoginScreenState extends State<LoginScreen> {
       _busy = true;
       _error = null;
     });
+
+    final cleanUrl = _serverUrl.text.trim().replaceAll(RegExp(r'/+$'), '');
+    if (cleanUrl.isNotEmpty) {
+      widget.api.setBaseUrl(cleanUrl);
+      await widget.session.saveBaseUrl(cleanUrl);
+    }
 
     try {
       final data = await widget.api.login(
@@ -122,6 +137,25 @@ class _LoginScreenState extends State<LoginScreen> {
                           : const Text('Sign in'),
                     ),
                     const SizedBox(height: 16),
+                    TextButton.icon(
+                      onPressed: () => setState(() => _showServerSettings = !_showServerSettings),
+                      icon: Icon(_showServerSettings ? Icons.expand_less : Icons.settings, size: 16),
+                      label: Text(_showServerSettings ? 'Hide server settings' : 'Server URL settings'),
+                    ),
+                    if (_showServerSettings) ...[
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _serverUrl,
+                        keyboardType: TextInputType.url,
+                        decoration: const InputDecoration(
+                          labelText: 'Server URL',
+                          hintText: 'https://manicerp-production-crwmyq.laravel.cloud',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) => (value == null || !value.startsWith('http')) ? 'Enter a valid http/https URL' : null,
+                      ),
+                    ],
+                    const SizedBox(height: 12),
                     const Text(
                       'Accounts must be issued by your council. Account numbers alone never grant access; linking requires a verification code.',
                       style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),

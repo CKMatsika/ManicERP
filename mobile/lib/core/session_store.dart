@@ -7,6 +7,7 @@ class SessionStore {
   static const _tokenKey = 'manicerp.token';
   static const _councilKey = 'manicerp.council';
   static const _councilNameKey = 'manicerp.council_name';
+  static const _baseUrlKey = 'manicerp.base_url';
 
   final FlutterSecureStorage _storage;
 
@@ -15,6 +16,10 @@ class SessionStore {
     await _storage.write(key: _councilKey, value: councilCode);
     await _storage.write(key: _councilNameKey, value: councilName);
   }
+
+  Future<void> saveBaseUrl(String url) => _storage.write(key: _baseUrlKey, value: url.trim().replaceAll(RegExp(r'/+$'), ''));
+
+  Future<String?> readBaseUrl() => _storage.read(key: _baseUrlKey);
 
   Future<String?> readToken() => _storage.read(key: _tokenKey);
 
