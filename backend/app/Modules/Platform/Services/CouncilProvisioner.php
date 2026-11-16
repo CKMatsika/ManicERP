@@ -133,13 +133,20 @@ class CouncilProvisioner
             $this->roles->seed($council);
             $this->seedModules($council);
 
-            try {
-                $this->migrateTenant($council);
-            } catch (Throwable $migrateException) {
-                if (str_contains($migrateException->getMessage(), 'already exists')) {
-                    \Illuminate\Support\Facades\Schema::connection('tenant')->dropAllTables();
+            $attempts = 0;
+            while (true) {
+                try {
                     $this->migrateTenant($council);
-                } else {
+                    break;
+                } catch (Throwable $migrateException) {
+                    $attempts++;
+                    $msg = $migrateException->getMessage();
+
+                    if ($attempts <= 15 && preg_match("/Table [`'](?:[^`']+\.)?([^`']+)[`'] already exists/i", $msg, $matches)) {
+                        \Illuminate\Support\Facades\Schema::connection('tenant')->dropIfExists($matches[1]);
+                        continue;
+                    }
+
                     throw $migrateException;
                 }
             }

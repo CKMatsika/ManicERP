@@ -65,7 +65,7 @@ return new class extends Migration
             $table->bigInteger('committed_minor')->default(0);
             $table->bigInteger('actual_minor')->default(0);
             $table->timestamps();
-            if ($table->getConnection()->getDriverName() === 'pgsql') {
+            if (Schema::getConnection()->getDriverName() === 'pgsql') {
                 $table->unique(['budget_id', 'account_code', 'dimensions'], 'proc_budget_lines_budget_acct_dim_unique');
             }
             $table->index(['budget_id', 'account_code']);

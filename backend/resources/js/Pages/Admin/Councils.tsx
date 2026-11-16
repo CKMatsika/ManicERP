@@ -100,14 +100,12 @@ export default function Councils({ councils, total_councils, active_councils, to
     function submitCreate(e: React.FormEvent) {
         e.preventDefault();
         createForm.post('/admin/councils', {
-            onSuccess: () => {
-                setShowCreate(false);
-                createForm.reset();
-                setFlashMsg({ type: 'success', text: 'Council created and provisioned successfully.' });
-                setTimeout(() => setFlashMsg(null), 5000);
-            },
-            onError: () => {
-                setFlashMsg({ type: 'error', text: 'Failed to create council. Check the form for errors.' });
+            onSuccess: (page) => {
+                const err = (page.props as any)?.flash?.error;
+                if (!err) {
+                    setShowCreate(false);
+                    createForm.reset();
+                }
             },
         });
     }
@@ -245,14 +243,7 @@ export default function Councils({ councils, total_councils, active_councils, to
             icon: 'RefreshCw',
             hidden: (c) => c.status === 'active',
             onClick: (c) => {
-                router.post(`/admin/councils/${c.id}/retry`, {}, {
-                    onSuccess: () => {
-                        setFlashMsg({ type: 'success', text: `Council '${c.name}' provisioned successfully.` });
-                    },
-                    onError: () => {
-                        setFlashMsg({ type: 'error', text: `Failed to retry provisioning for '${c.name}'.` });
-                    },
-                });
+                router.post(`/admin/councils/${c.id}/retry`);
             },
         },
         {
