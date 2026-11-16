@@ -49,7 +49,7 @@ class LoginController extends Controller
             throw ValidationException::withMessages(['email' => 'This account is suspended or temporarily locked.']);
         }
 
-        if (! $user->activeMemberships()->exists()) {
+        if (! $user->is_platform_admin && ! $user->activeMemberships()->exists()) {
             throw ValidationException::withMessages(['email' => 'This account has no active council membership.']);
         }
 

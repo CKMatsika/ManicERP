@@ -20,6 +20,10 @@ class HomeController extends Controller
             return redirect()->route('portal.dashboard');
         }
 
+        if ($user->is_platform_admin) {
+            return redirect()->route('admin.councils.index');
+        }
+
         return redirect()->route('councils.index');
     }
 }
