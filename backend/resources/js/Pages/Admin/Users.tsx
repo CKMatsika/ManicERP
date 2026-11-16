@@ -471,6 +471,9 @@ export default function UsersIndex({ users, councils, roles, currentCouncilId }:
                                     onChange={(e) => createForm.setData('council_id', e.target.value)}
                                     className="mt-1 h-9 w-full rounded-lg border border-slate-300 px-2.5 text-xs focus:border-emerald-600 focus:outline-none"
                                 >
+                                    {councils.length === 0 && (
+                                        <option value="">No active councils — activate one in Council Directory first</option>
+                                    )}
                                     {councils.map((c) => (
                                         <option key={c.id} value={c.id}>
                                             {c.code} — {c.name}
