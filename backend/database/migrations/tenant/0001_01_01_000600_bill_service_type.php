@@ -15,14 +15,14 @@ return new class extends Migration
 
         DB::statement('UPDATE bills SET service_type = \'rates\' WHERE service_type IS NULL');
 
-        DB::statement('DROP INDEX IF EXISTS bills_active_period_unique');
-        DB::statement('CREATE UNIQUE INDEX bills_active_period_unique ON bills (customer_account_id, period_start, period_end, service_type) WHERE status <> \'void\'');
+        if (DB::getDriverName() === 'pgsql') { DB::statement('DROP INDEX IF EXISTS bills_active_period_unique'); }
+        if (DB::getDriverName() === 'pgsql') { DB::statement('CREATE UNIQUE INDEX bills_active_period_unique ON bills (customer_account_id, period_start, period_end, service_type) WHERE status <> \'void\''); }
     }
 
     public function down(): void
     {
-        DB::statement('DROP INDEX IF EXISTS bills_active_period_unique');
-        DB::statement('CREATE UNIQUE INDEX bills_active_period_unique ON bills (customer_account_id, period_start, period_end) WHERE status <> \'void\'');
+        if (DB::getDriverName() === 'pgsql') { DB::statement('DROP INDEX IF EXISTS bills_active_period_unique'); }
+        if (DB::getDriverName() === 'pgsql') { DB::statement('CREATE UNIQUE INDEX bills_active_period_unique ON bills (customer_account_id, period_start, period_end) WHERE status <> \'void\''); }
 
         Schema::table('bills', function (Blueprint $table) {
             $table->dropColumn('service_type');

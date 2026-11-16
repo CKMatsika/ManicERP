@@ -245,8 +245,8 @@ return new class extends Migration
 
         // Opening-balance invoices may legitimately share an account and cutover
         // date. Keep the duplicate-billing guard for ordinary billing only.
-        DB::statement('DROP INDEX IF EXISTS bills_active_period_unique');
-        DB::statement("CREATE UNIQUE INDEX bills_active_period_unique ON bills (customer_account_id, period_start, period_end, service_type) WHERE status <> 'void' AND origin = 'billing'");
+        if (DB::getDriverName() === 'pgsql') { DB::statement('DROP INDEX IF EXISTS bills_active_period_unique'); }
+        if (DB::getDriverName() === 'pgsql') { DB::statement("CREATE UNIQUE INDEX bills_active_period_unique ON bills (customer_account_id, period_start, period_end, service_type) WHERE status <> 'void' AND origin = 'billing'"); }
 
         Schema::table('policy_documents', function (Blueprint $table) {
             $table->foreignUlid('source_document_id')->nullable()->constrained('accounting_source_documents')->nullOnDelete();

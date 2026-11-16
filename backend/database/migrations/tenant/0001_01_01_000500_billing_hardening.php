@@ -17,7 +17,7 @@ return new class extends Migration
 
         // One active bill per account and billing period prevents double billing
         // even if a run is submitted twice concurrently.
-        DB::statement('CREATE UNIQUE INDEX bills_active_period_unique ON bills (customer_account_id, period_start, period_end) WHERE status <> \'void\'');
+        if (DB::getDriverName() === 'pgsql') { DB::statement('CREATE UNIQUE INDEX bills_active_period_unique ON bills (customer_account_id, period_start, period_end) WHERE status <> \'void\''); }
 
         Schema::table('receipts', function (Blueprint $table) {
             $table->unique('payment_id');
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->dropUnique(['payment_id']);
         });
 
-        DB::statement('DROP INDEX IF EXISTS bills_active_period_unique');
+        if (DB::getDriverName() === 'pgsql') { DB::statement('DROP INDEX IF EXISTS bills_active_period_unique'); }
 
         Schema::table('billing_run_items', function (Blueprint $table) {
             $table->dropColumn(['charge_type', 'tariff_version_id', 'calculation']);
