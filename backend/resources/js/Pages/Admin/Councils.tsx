@@ -171,7 +171,7 @@ export default function Councils({ councils, total_councils, active_councils, to
     const columns: Column<CouncilItem>[] = [
         {
             key: 'code',
-            label: 'Code',
+            header: 'Code',
             sortable: true,
             render: (c) => (
                 <span className="font-mono font-semibold text-emerald-700 text-xs tracking-wide">
@@ -181,7 +181,7 @@ export default function Councils({ councils, total_councils, active_councils, to
         },
         {
             key: 'name',
-            label: 'Council Name',
+            header: 'Council Name',
             sortable: true,
             render: (c) => (
                 <div>
@@ -192,7 +192,7 @@ export default function Councils({ councils, total_councils, active_councils, to
         },
         {
             key: 'currency_code',
-            label: 'Currency',
+            header: 'Currency',
             render: (c) => (
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
                     {c.currency_code}
@@ -201,7 +201,7 @@ export default function Councils({ councils, total_councils, active_councils, to
         },
         {
             key: 'domains',
-            label: 'Domain',
+            header: 'Domain',
             render: (c) => {
                 const domain = c.domains?.[0];
                 return domain
@@ -211,7 +211,7 @@ export default function Councils({ councils, total_councils, active_councils, to
         },
         {
             key: 'members_count',
-            label: 'Members',
+            header: 'Members',
             sortable: true,
             render: (c) => (
                 <span className="text-xs font-semibold text-gray-700">
@@ -221,7 +221,7 @@ export default function Councils({ councils, total_councils, active_councils, to
         },
         {
             key: 'provisioned_at',
-            label: 'Provisioned',
+            header: 'Provisioned',
             render: (c) => (
                 <span className="text-xs text-gray-500">
                     {c.provisioned_at
@@ -234,7 +234,7 @@ export default function Councils({ councils, total_councils, active_councils, to
         },
         {
             key: 'status',
-            label: 'Status',
+            header: 'Status',
             render: (c) => <StatusBadge status={c.status} />,
         },
     ];
@@ -251,7 +251,7 @@ export default function Councils({ councils, total_councils, active_councils, to
     /*  Render                                                           */
     /* ---------------------------------------------------------------- */
     return (
-        <AppLayout>
+        <AppLayout title="Council Directory & Setup">
             <Head title="Council Directory" />
 
             {/* Flash Banner */}
@@ -271,22 +271,18 @@ export default function Councils({ councils, total_councils, active_councils, to
 
             <PageHeader
                 title="Council Directory & Setup"
-                subtitle="Provision new councils and manage existing council configurations"
-                actions={
-                    <button
-                        onClick={() => setShowCreate(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white text-xs font-semibold rounded-lg hover:bg-emerald-800 transition-colors"
-                    >
-                        <Icon name="Plus" size={14} />
-                        Create Council
-                    </button>
-                }
+                description="Provision new councils and manage existing council configurations"
+                primaryAction={{
+                    label: 'Create Council',
+                    icon: 'Plus',
+                    onClick: () => setShowCreate(true),
+                }}
             />
 
-            <div className="px-6 pb-6 space-y-4">
+            <div className="space-y-4">
 
                 {/* Stat Strip */}
-                <StatStrip items={stats} />
+                <StatStrip stats={stats} />
 
                 {/* Filter Row */}
                 <div className="flex flex-wrap items-center gap-3">
@@ -329,8 +325,9 @@ export default function Councils({ councils, total_councils, active_councils, to
                     data={filtered}
                     columns={columns}
                     rowActions={rowActions}
-                    rowKey="id"
-                    emptyMessage="No councils found. Create your first council to get started."
+                    keyField="id"
+                    emptyTitle="No councils found"
+                    emptyHint="Create your first council to get started."
                 />
             </div>
 
@@ -341,7 +338,7 @@ export default function Councils({ councils, total_councils, active_councils, to
                 isOpen={showCreate}
                 onClose={() => { setShowCreate(false); createForm.reset(); }}
                 title="Create New Council"
-                size="lg"
+                maxWidth="max-w-2xl"
             >
                 <form onSubmit={submitCreate} className="space-y-5">
 
@@ -492,7 +489,7 @@ export default function Councils({ councils, total_councils, active_councils, to
                 isOpen={showEdit}
                 onClose={() => { setShowEdit(false); setEditTarget(null); }}
                 title={`Edit Council — ${editTarget?.code ?? ''}`}
-                size="lg"
+                maxWidth="max-w-2xl"
             >
                 {editTarget && (
                     <form onSubmit={submitEdit} className="space-y-5">

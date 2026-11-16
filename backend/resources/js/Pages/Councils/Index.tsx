@@ -1,4 +1,4 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 
 type CouncilOption = { code: string; name: string; role: string | null; demo: boolean };
 
@@ -23,18 +23,18 @@ export default function CouncilsIndex({ staff, citizen }: { staff: CouncilOption
                             Create a council or manage staff and citizen accounts across the platform.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
-                            <Link
+                            <a
                                 href="/admin/councils"
                                 className="inline-flex items-center rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
                             >
                                 Council Directory & Setup
-                            </Link>
-                            <Link
+                            </a>
+                            <a
                                 href="/admin/users"
                                 className="inline-flex items-center rounded-md border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
                             >
                                 User & Access Management
-                            </Link>
+                            </a>
                         </div>
                     </div>
                 )}
