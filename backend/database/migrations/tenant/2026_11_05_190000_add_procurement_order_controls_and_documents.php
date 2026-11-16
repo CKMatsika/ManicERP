@@ -31,7 +31,7 @@ return new class extends Migration
             $table->ulid('amendment_id')->nullable();
             $table->ulid('created_by');
             $table->timestamp('created_at');
-            $table->unique(['purchase_order_id', 'version_number']);
+            $table->unique(['purchase_order_id', 'version_number'], 'proc_po_versions_po_ver_unique');
         });
 
         Schema::create('procurement_order_version_lines', function (Blueprint $table): void {
@@ -40,11 +40,11 @@ return new class extends Migration
             $table->ulid('purchase_order_line_id');
             $table->string('description', 240);
             $table->string('account_code', 32);
-            $table->jsonb('dimensions')->default('{}');
+            $table->jsonb('dimensions')->nullable();
             $table->decimal('ordered_quantity', 14, 3);
             $table->bigInteger('unit_price_minor');
             $table->bigInteger('line_total_minor');
-            $table->unique(['order_version_id', 'purchase_order_line_id']);
+            $table->unique(['order_version_id', 'purchase_order_line_id'], 'proc_po_ver_lines_ver_line_unique');
         });
 
         Schema::create('procurement_order_amendments', function (Blueprint $table): void {
@@ -75,7 +75,7 @@ return new class extends Migration
             $table->bigInteger('after_unit_price_minor');
             $table->bigInteger('before_total_minor');
             $table->bigInteger('after_total_minor');
-            $table->unique(['amendment_id', 'purchase_order_line_id']);
+            $table->unique(['amendment_id', 'purchase_order_line_id'], 'proc_po_amend_lines_amend_line_unique');
         });
 
         Schema::create('procurement_order_events', function (Blueprint $table): void {
@@ -84,7 +84,7 @@ return new class extends Migration
             $table->string('event_type', 32);
             $table->string('status', 32);
             $table->text('reason')->nullable();
-            $table->jsonb('details')->default('{}');
+            $table->jsonb('details')->nullable();
             $table->ulid('prepared_by')->nullable();
             $table->ulid('approved_by')->nullable();
             $table->timestamp('occurred_at');
@@ -154,7 +154,7 @@ return new class extends Migration
             $table->text('replacement_reason')->nullable();
             $table->ulid('uploaded_by');
             $table->timestamp('uploaded_at');
-            $table->unique(['document_record_id', 'version_number']);
+            $table->unique(['document_record_id', 'version_number'], 'proc_doc_versions_doc_ver_unique');
             $table->unique('document_id');
         });
 

@@ -35,8 +35,8 @@ return new class extends Migration
             $table->string('currency_code', 3);
             $table->boolean('payment_prerequisite')->default(true);
             $table->string('payment_required_before', 48)->nullable();
-            $table->jsonb('refund_policy')->default('{}');
-            $table->jsonb('accounting_treatment')->default('{}');
+            $table->jsonb('refund_policy')->nullable();
+            $table->jsonb('accounting_treatment')->nullable();
             $table->string('recognition_method', 32)->default('immediate');
             $table->string('status', 24)->default('outstanding');
             $table->ulid('waived_by')->nullable();
@@ -70,21 +70,21 @@ return new class extends Migration
         Schema::create('licence_document_extractions', function (Blueprint $table): void {
             $table->ulid('id')->primary();
             $table->foreignUlid('licence_application_id')->constrained('licence_applications')->restrictOnDelete();
-            $table->foreignUlid('licence_application_document_id')->constrained('licence_application_documents')->restrictOnDelete();
+            $table->foreignUlid('licence_application_document_id')->constrained('licence_application_documents', 'id', 'lic_doc_ext_app_doc_fk')->restrictOnDelete();
             $table->foreignUlid('document_id')->constrained('documents')->restrictOnDelete();
             $table->unsignedInteger('document_version');
             $table->string('status', 24)->default('proposed');
             $table->string('provider', 64)->nullable();
             $table->string('model', 128)->nullable();
-            $table->jsonb('proposed_fields')->default('{}');
-            $table->jsonb('field_provenance')->default('{}');
+            $table->jsonb('proposed_fields')->nullable();
+            $table->jsonb('field_provenance')->nullable();
             $table->jsonb('reviewed_fields')->nullable();
             $table->ulid('created_by');
             $table->ulid('reviewed_by')->nullable();
             $table->timestamp('reviewed_at')->nullable();
             $table->text('review_note')->nullable();
             $table->timestamps();
-            $table->index(['licence_application_id', 'created_at']);
+            $table->index(['licence_application_id', 'created_at'], 'lic_doc_ext_app_created_idx');
             $table->index(['document_id', 'document_version']);
         });
 
@@ -93,7 +93,7 @@ return new class extends Migration
             $table->foreignUlid('licence_application_id')->constrained('licence_applications')->restrictOnDelete();
             $table->string('draft_type', 32);
             $table->text('content');
-            $table->jsonb('source_refs')->default('[]');
+            $table->jsonb('source_refs')->nullable();
             $table->string('status', 24)->default('draft');
             $table->ulid('created_by');
             $table->ulid('reviewed_by')->nullable();

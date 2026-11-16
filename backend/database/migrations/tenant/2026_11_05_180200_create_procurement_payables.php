@@ -30,7 +30,7 @@ return new class extends Migration
             $table->timestamp('approved_at')->nullable();
             $table->string('idempotency_key', 191)->unique();
             $table->timestamps();
-            $table->unique(['supplier_id', 'supplier_invoice_number']);
+            $table->unique(['supplier_id', 'supplier_invoice_number'], 'proc_supp_inv_supp_num_unique');
             $table->index(['status', 'due_date']);
         });
 

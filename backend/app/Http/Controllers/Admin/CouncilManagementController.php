@@ -96,4 +96,15 @@ class CouncilManagementController extends Controller
 
         return back()->with('success', "Council '{$council->name}' updated successfully.");
     }
+
+    public function retry(Council $council, CouncilProvisioner $provisioner): RedirectResponse
+    {
+        try {
+            $provisioner->retryProvision($council);
+
+            return back()->with('success', "Council '{$council->name}' [{$council->code}] provisioned successfully.");
+        } catch (\Throwable $e) {
+            return back()->with('error', "Retry failed: {$e->getMessage()}");
+        }
+    }
 }

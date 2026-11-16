@@ -118,6 +118,42 @@ class CouncilProvisioner
         }
     }
 
+    public function retryProvision(Council $council): Council
+    {
+        $council->status = 'provisioning';
+        $council->save();
+
+        try {
+            $this->createDatabase($council->database_name);
+            $this->tenants->connect($council, null, true);
+            \Illuminate\Support\Facades\Schema::connection('tenant')->dropAllTables();
+
+            $this->roles->seed($council);
+            $this->seedModules($council);
+            $this->migrateTenant($council);
+            $this->seedBaseline($council);
+
+            $council->status = 'active';
+            $council->provisioned_at = now();
+            $council->save();
+
+            $this->platformAudit->record(
+                action: 'council.provisioned',
+                councilId: $council->id,
+                subjectType: Council::class,
+                subjectId: $council->id,
+                after: ['code' => $council->code, 'database' => $council->database_name, 'retried' => true],
+            );
+
+            return $council;
+        } catch (Throwable $exception) {
+            $council->status = 'provisioning_failed';
+            $council->save();
+
+            throw $exception;
+        }
+    }
+
     public function migrateTenant(Council $council): void
     {
         $this->tenants->connect($council, null, true);

@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('supplier_number', 40)->unique();
             $table->string('status', 24)->default('pending');
             $table->string('tax_identifier', 100)->nullable();
-            $table->jsonb('verification')->default('{}');
+            $table->jsonb('verification')->nullable();
             $table->ulid('created_by');
             $table->ulid('approved_by')->nullable();
             $table->timestamp('approved_at')->nullable();
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->text('account_number_encrypted');
             $table->string('currency_code', 3)->default('USD');
             $table->string('status', 24)->default('pending_approval');
-            $table->jsonb('change_history')->default('[]');
+            $table->jsonb('change_history')->nullable();
             $table->ulid('submitted_by');
             $table->ulid('approved_by')->nullable();
             $table->timestamp('approved_at')->nullable();
@@ -58,14 +58,16 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->foreignUlid('budget_id')->constrained('procurement_budgets')->restrictOnDelete();
             $table->string('account_code', 32);
-            $table->jsonb('dimensions')->default('{}');
+            $table->jsonb('dimensions')->nullable();
             $table->bigInteger('approved_minor');
             $table->bigInteger('transferred_in_minor')->default(0);
             $table->bigInteger('transferred_out_minor')->default(0);
             $table->bigInteger('committed_minor')->default(0);
             $table->bigInteger('actual_minor')->default(0);
             $table->timestamps();
-            $table->unique(['budget_id', 'account_code', 'dimensions']);
+            if ($table->getConnection()->getDriverName() === 'pgsql') {
+                $table->unique(['budget_id', 'account_code', 'dimensions'], 'proc_budget_lines_budget_acct_dim_unique');
+            }
             $table->index(['budget_id', 'account_code']);
         });
 

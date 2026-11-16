@@ -31,7 +31,7 @@ return new class extends Migration
             $table->bigInteger('debit_minor')->default(0);
             $table->bigInteger('credit_minor')->default(0);
             $table->ulid('party_id')->nullable();
-            $table->jsonb('dimensions')->default('{}');
+            $table->jsonb('dimensions')->nullable();
             $table->text('memo')->nullable();
             $table->timestamps();
         });

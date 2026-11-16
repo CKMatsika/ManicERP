@@ -241,6 +241,21 @@ export default function Councils({ councils, total_councils, active_councils, to
 
     const rowActions: RowAction<CouncilItem>[] = [
         {
+            label: 'Retry Provisioning',
+            icon: 'RefreshCw',
+            hidden: (c) => c.status === 'active',
+            onClick: (c) => {
+                router.post(`/admin/councils/${c.id}/retry`, {}, {
+                    onSuccess: () => {
+                        setFlashMsg({ type: 'success', text: `Council '${c.name}' provisioned successfully.` });
+                    },
+                    onError: () => {
+                        setFlashMsg({ type: 'error', text: `Failed to retry provisioning for '${c.name}'.` });
+                    },
+                });
+            },
+        },
+        {
             label: 'Edit Council',
             icon:  'Edit',
             onClick: openEdit,

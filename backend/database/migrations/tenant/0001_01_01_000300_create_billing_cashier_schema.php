@@ -62,7 +62,7 @@ return new class extends Migration
             $table->bigInteger('amount_minor')->default(0);
             $table->ulid('tariff_version_id')->nullable();
             $table->ulid('meter_reading_id')->nullable();
-            $table->jsonb('dimensions')->default('{}');
+            $table->jsonb('dimensions')->nullable();
             $table->timestamps();
         });
 

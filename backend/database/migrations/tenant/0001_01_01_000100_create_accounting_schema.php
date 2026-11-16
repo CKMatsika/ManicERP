@@ -106,7 +106,7 @@ return new class extends Migration
             $table->timestamp('approved_at')->nullable();
             $table->timestamps();
 
-            $table->unique(['chart_version_id', 'legacy_code', 'effective_from']);
+            $table->unique(['chart_version_id', 'legacy_code', 'effective_from'], 'gl_crosswalks_chart_legacy_eff_unique');
         });
 
         Schema::create('chart_import_batches', function (Blueprint $table) {
@@ -211,7 +211,7 @@ return new class extends Migration
             $table->foreignUlid('gl_account_id')->constrained('gl_accounts')->restrictOnDelete();
             $table->bigInteger('debit_minor')->default(0);
             $table->bigInteger('credit_minor')->default(0);
-            $table->jsonb('dimensions')->default('{}');
+            $table->jsonb('dimensions')->nullable();
             $table->string('memo')->nullable();
             $table->ulid('party_id')->nullable();
             $table->timestamps();
@@ -231,8 +231,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('debit_account_code', 32);
             $table->string('credit_account_code', 32);
-            $table->jsonb('required_dimensions')->default('[]');
-            $table->jsonb('dimensions')->default('{}');
+            $table->jsonb('required_dimensions')->nullable();
+            $table->jsonb('dimensions')->nullable();
             $table->string('status', 24)->default('draft');
             $table->unsignedInteger('version')->default(1);
             $table->date('effective_from')->nullable();

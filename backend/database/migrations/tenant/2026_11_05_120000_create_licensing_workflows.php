@@ -55,7 +55,7 @@ return new class extends Migration
             $table->timestamp('reinstated_at')->nullable();
             $table->text('lifecycle_reason')->nullable();
             $table->timestamps();
-            $table->index(['customer_account_id', 'licence_type_id', 'validity_status']);
+            $table->index(['customer_account_id', 'licence_type_id', 'validity_status'], 'licences_acct_type_validity_idx');
         });
 
         Schema::create('licence_applications', function (Blueprint $table) {
@@ -70,7 +70,7 @@ return new class extends Migration
             $table->string('status', 32)->default('draft');
             $table->string('idempotency_key', 191);
             $table->jsonb('configuration_snapshot');
-            $table->jsonb('form_data')->default('{}');
+            $table->jsonb('form_data')->nullable();
             $table->string('holder_name', 200);
             $table->string('fee_currency', 3)->default('USD');
             $table->bigInteger('fee_amount_minor')->default(0);
@@ -84,7 +84,7 @@ return new class extends Migration
             $table->timestamp('decided_at')->nullable();
             $table->ulid('decided_by')->nullable();
             $table->text('decision_reason')->nullable();
-            $table->jsonb('conditions')->default('[]');
+            $table->jsonb('conditions')->nullable();
             $table->timestamps();
             $table->unique(['customer_account_id', 'idempotency_key']);
             $table->index(['status', 'created_at']);
@@ -100,7 +100,7 @@ return new class extends Migration
             $table->ulid('supersedes_id')->nullable();
             $table->ulid('uploaded_by')->nullable();
             $table->timestamps();
-            $table->unique(['licence_application_id', 'document_type', 'version']);
+            $table->unique(['licence_application_id', 'document_type', 'version'], 'lic_app_docs_app_type_ver_unique');
         });
 
         Schema::create('licence_inspections', function (Blueprint $table) {
@@ -109,7 +109,7 @@ return new class extends Migration
             $table->ulid('assigned_to')->nullable();
             $table->dateTimeTz('scheduled_at')->nullable();
             $table->string('status', 24)->default('assigned');
-            $table->jsonb('findings')->default('[]');
+            $table->jsonb('findings')->nullable();
             $table->text('result')->nullable();
             $table->ulid('completed_by')->nullable();
             $table->timestamp('completed_at')->nullable();
@@ -129,7 +129,7 @@ return new class extends Migration
             $table->string('licence_type_name', 160);
             $table->date('issued_on');
             $table->date('expires_on');
-            $table->jsonb('conditions')->default('[]');
+            $table->jsonb('conditions')->nullable();
             $table->ulid('replaces_certificate_id')->nullable();
             $table->ulid('issued_by');
             $table->timestamp('issued_at');
@@ -145,7 +145,7 @@ return new class extends Migration
             $table->string('channel', 24)->default('unavailable');
             $table->string('event', 48);
             $table->string('status', 24)->default('queued');
-            $table->jsonb('payload')->default('{}');
+            $table->jsonb('payload')->nullable();
             $table->unsignedInteger('attempts')->default(0);
             $table->timestamp('available_at')->nullable();
             $table->timestamp('delivered_at')->nullable();

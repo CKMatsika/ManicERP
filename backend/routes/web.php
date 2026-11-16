@@ -68,6 +68,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/councils', [CouncilManagementController::class, 'index'])->name('admin.councils.index');
     Route::post('/admin/councils', [CouncilManagementController::class, 'store'])->name('admin.councils.store');
     Route::patch('/admin/councils/{council}', [CouncilManagementController::class, 'update'])->name('admin.councils.update');
+    Route::post('/admin/councils/{council}/retry', [CouncilManagementController::class, 'retry'])->name('admin.councils.retry');
 });
 
 /*

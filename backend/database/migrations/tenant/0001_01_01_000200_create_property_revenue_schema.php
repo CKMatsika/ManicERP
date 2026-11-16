@@ -125,7 +125,7 @@ return new class extends Migration
             $table->timestamp('approved_at')->nullable();
             $table->timestamps();
 
-            $table->unique(['property_id', 'party_id', 'interest_type', 'effective_from']);
+            $table->unique(['property_id', 'party_id', 'interest_type', 'effective_from'], 'ownership_interests_prop_party_type_eff_unique');
             $table->index(['property_id', 'status']);
         });
 
@@ -156,7 +156,7 @@ return new class extends Migration
             $table->date('effective_to')->nullable();
             $table->timestamps();
 
-            $table->unique(['customer_account_id', 'party_id', 'liability_type', 'effective_from']);
+            $table->unique(['customer_account_id', 'party_id', 'liability_type', 'effective_from'], 'acct_liabilities_acct_party_type_eff_unique');
         });
 
         Schema::create('service_connections', function (Blueprint $table) {

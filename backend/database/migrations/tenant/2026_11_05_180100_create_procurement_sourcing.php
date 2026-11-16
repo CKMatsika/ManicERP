@@ -37,7 +37,7 @@ return new class extends Migration
             $table->string('status', 24)->default('received');
             $table->ulid('submitted_by');
             $table->timestamps();
-            $table->unique(['requisition_id', 'supplier_id', 'quote_reference']);
+            $table->unique(['requisition_id', 'supplier_id', 'quote_reference'], 'proc_quotes_req_supp_ref_unique');
             $table->index(['requisition_id', 'status']);
         });
 
@@ -75,7 +75,7 @@ return new class extends Migration
             $table->foreignUlid('purchase_order_id')->constrained('procurement_purchase_orders')->restrictOnDelete();
             $table->string('description', 240);
             $table->string('account_code', 32);
-            $table->jsonb('dimensions')->default('{}');
+            $table->jsonb('dimensions')->nullable();
             $table->decimal('ordered_quantity', 14, 3);
             $table->decimal('received_quantity', 14, 3)->default(0);
             $table->decimal('invoiced_quantity', 14, 3)->default(0);
@@ -104,7 +104,7 @@ return new class extends Migration
             $table->decimal('accepted_quantity', 14, 3);
             $table->text('finding')->nullable();
             $table->timestamps();
-            $table->unique(['receipt_id', 'purchase_order_line_id']);
+            $table->unique(['receipt_id', 'purchase_order_line_id'], 'proc_receipt_lines_rcpt_poline_unique');
         });
     }
 
