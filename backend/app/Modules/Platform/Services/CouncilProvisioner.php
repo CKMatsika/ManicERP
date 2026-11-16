@@ -142,8 +142,10 @@ class CouncilProvisioner
                     $attempts++;
                     $msg = $migrateException->getMessage();
 
-                    if ($attempts <= 15 && preg_match("/Table [`'](?:[^`']+\.)?([^`']+)[`'] already exists/i", $msg, $matches)) {
+                    if ($attempts <= 25 && preg_match("/Table [`'](?:[^`']+\.)?([^`']+)[`'] already exists/i", $msg, $matches)) {
+                        \Illuminate\Support\Facades\Schema::connection('tenant')->disableForeignKeyConstraints();
                         \Illuminate\Support\Facades\Schema::connection('tenant')->dropIfExists($matches[1]);
+                        \Illuminate\Support\Facades\Schema::connection('tenant')->enableForeignKeyConstraints();
                         continue;
                     }
 
