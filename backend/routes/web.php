@@ -59,6 +59,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/security/mfa/challenge', [MfaController::class, 'verify'])->name('security.mfa.verify');
     Route::get('/security/mfa/setup', [MfaController::class, 'setup'])->name('security.mfa.setup');
     Route::post('/security/mfa/setup', [MfaController::class, 'confirm'])->name('security.mfa.confirm');
+
+    Route::get('/admin/users', [UserController::class, 'index'])->name('admin.users.index');
+    Route::post('/admin/users', [UserController::class, 'store'])->name('admin.users.store');
+    Route::patch('/admin/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
+    Route::post('/admin/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('admin.users.reset-password');
+
+    Route::get('/admin/councils', [CouncilManagementController::class, 'index'])->name('admin.councils.index');
+    Route::post('/admin/councils', [CouncilManagementController::class, 'store'])->name('admin.councils.store');
+    Route::patch('/admin/councils/{council}', [CouncilManagementController::class, 'update'])->name('admin.councils.update');
 });
 
 /*
@@ -85,15 +94,6 @@ Route::middleware(['auth', 'council:staff', 'mfa'])->group(function () {
         ->middleware('can:platform.modules.manage')->name('admin.modules.index');
     Route::patch('/admin/modules', [ModuleController::class, 'update'])
         ->middleware('can:platform.modules.manage')->name('admin.modules.update');
-
-    Route::get('/admin/users', [UserController::class, 'index'])->name('admin.users.index');
-    Route::post('/admin/users', [UserController::class, 'store'])->name('admin.users.store');
-    Route::patch('/admin/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
-    Route::post('/admin/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('admin.users.reset-password');
-
-    Route::get('/admin/councils', [CouncilManagementController::class, 'index'])->name('admin.councils.index');
-    Route::post('/admin/councils', [CouncilManagementController::class, 'store'])->name('admin.councils.store');
-    Route::patch('/admin/councils/{council}', [CouncilManagementController::class, 'update'])->name('admin.councils.update');
 
     Route::get('/admin/audit', [AuditController::class, 'index'])
         ->middleware('can:platform.audit.view')->name('admin.audit.index');
