@@ -50,6 +50,7 @@ class CouncilManagementController extends Controller
 
     public function store(Request $request, CouncilProvisioner $provisioner): RedirectResponse
     {
+        @set_time_limit(300);
         $data = $request->validate([
             'code' => ['required', 'string', 'max:24', 'unique:councils,code', 'regex:/^[A-Za-z0-9_-]+$/'],
             'name' => ['required', 'string', 'max:255'],
@@ -99,6 +100,7 @@ class CouncilManagementController extends Controller
 
     public function retry(Council $council, CouncilProvisioner $provisioner): RedirectResponse
     {
+        @set_time_limit(300);
         try {
             $provisioner->retryProvision($council);
 

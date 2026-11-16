@@ -31,6 +31,7 @@ class CouncilProvisioner
      */
     public function provision(array $attributes, ?User $actor = null): Council
     {
+        @set_time_limit(300);
         $code = strtoupper(trim($attributes['code']));
 
         if (! preg_match('/^[A-Z][A-Z0-9_]{2,20}$/', $code)) {
@@ -120,17 +121,29 @@ class CouncilProvisioner
 
     public function retryProvision(Council $council): Council
     {
+        @set_time_limit(300);
         $council->status = 'provisioning';
         $council->save();
 
         try {
             $this->createDatabase($council->database_name);
             $this->tenants->connect($council, null, true);
-            \Illuminate\Support\Facades\Schema::connection('tenant')->dropAllTables();
+            DB::connection('tenant')->disableQueryLog();
 
             $this->roles->seed($council);
             $this->seedModules($council);
-            $this->migrateTenant($council);
+
+            try {
+                $this->migrateTenant($council);
+            } catch (Throwable $migrateException) {
+                if (str_contains($migrateException->getMessage(), 'already exists')) {
+                    \Illuminate\Support\Facades\Schema::connection('tenant')->dropAllTables();
+                    $this->migrateTenant($council);
+                } else {
+                    throw $migrateException;
+                }
+            }
+
             $this->seedBaseline($council);
 
             $council->status = 'active';
@@ -157,6 +170,7 @@ class CouncilProvisioner
     public function migrateTenant(Council $council): void
     {
         $this->tenants->connect($council, null, true);
+        DB::connection('tenant')->disableQueryLog();
 
         Artisan::call('migrate', [
             '--database' => 'tenant',
