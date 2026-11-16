@@ -1,8 +1,10 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 
 type CouncilOption = { code: string; name: string; role: string | null; demo: boolean };
 
 export default function CouncilsIndex({ staff, citizen }: { staff: CouncilOption[]; citizen: CouncilOption[] }) {
+    const { auth } = usePage<{ auth?: { is_platform_admin?: boolean } }>().props;
+
     function select(code: string) {
         router.post('/councils/select', { code });
     }
@@ -13,6 +15,29 @@ export default function CouncilsIndex({ staff, citizen }: { staff: CouncilOption
             <div className="mx-auto max-w-2xl px-4 py-10">
                 <h1 className="text-xl font-semibold tracking-tight">Select a council</h1>
                 <p className="mt-1 text-sm text-slate-600">Your access is limited to councils where you hold an active membership.</p>
+
+                {auth?.is_platform_admin && (
+                    <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Platform Administration</p>
+                        <p className="mt-1 text-sm text-emerald-900">
+                            Create a council or manage staff and citizen accounts across the platform.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            <Link
+                                href="/admin/councils"
+                                className="inline-flex items-center rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
+                            >
+                                Council Directory & Setup
+                            </Link>
+                            <Link
+                                href="/admin/users"
+                                className="inline-flex items-center rounded-md border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+                            >
+                                User & Access Management
+                            </Link>
+                        </div>
+                    </div>
+                )}
 
                 <section className="mt-6">
                     <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Staff access</h2>
