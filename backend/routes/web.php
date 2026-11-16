@@ -6,7 +6,9 @@ use App\Http\Controllers\Accounting\JournalController;
 use App\Http\Controllers\Accounting\ReportController;
 use App\Http\Controllers\Accounting\StandardsController;
 use App\Http\Controllers\Admin\AuditController;
+use App\Http\Controllers\Admin\CouncilManagementController;
 use App\Http\Controllers\Admin\ModuleController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Ai\AssistantController;
 use App\Http\Controllers\Auth\CitizenRegistrationController;
 use App\Http\Controllers\Auth\CouncilController;
@@ -83,6 +85,15 @@ Route::middleware(['auth', 'council:staff', 'mfa'])->group(function () {
         ->middleware('can:platform.modules.manage')->name('admin.modules.index');
     Route::patch('/admin/modules', [ModuleController::class, 'update'])
         ->middleware('can:platform.modules.manage')->name('admin.modules.update');
+
+    Route::get('/admin/users', [UserController::class, 'index'])->name('admin.users.index');
+    Route::post('/admin/users', [UserController::class, 'store'])->name('admin.users.store');
+    Route::patch('/admin/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
+    Route::post('/admin/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('admin.users.reset-password');
+
+    Route::get('/admin/councils', [CouncilManagementController::class, 'index'])->name('admin.councils.index');
+    Route::post('/admin/councils', [CouncilManagementController::class, 'store'])->name('admin.councils.store');
+    Route::patch('/admin/councils/{council}', [CouncilManagementController::class, 'update'])->name('admin.councils.update');
 
     Route::get('/admin/audit', [AuditController::class, 'index'])
         ->middleware('can:platform.audit.view')->name('admin.audit.index');

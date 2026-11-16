@@ -130,12 +130,14 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     },
     {
         id: 'governance',
-        title: 'Administration',
+        title: 'System administration & settings',
         icon: 'ShieldCheck',
-        description: 'Security, audit and platform administration',
+        description: 'Users, council directory, module settings, and audit logs',
         items: [
-            { label: 'Audit trail & security', href: '/admin/audit', icon: 'History', section: 'Governance', isPrimary: true, keywords: ['audit', 'sha-256', 'tamper-evident', 'logs'] },
-            { label: 'Module registry', href: '/admin/modules', icon: 'Layers', section: 'Platform settings', isPrimary: false, keywords: ['modules', 'licensing', 'activation', 'tenant'] },
+            { label: 'User & access management', href: '/admin/users', icon: 'Users', section: 'Identity & access', isPrimary: true, keywords: ['users', 'roles', 'staff', 'citizens', 'passwords', 'access control'] },
+            { label: 'Council directory & setup', href: '/admin/councils', icon: 'Building2', section: 'Platform settings', isPrimary: true, keywords: ['councils', 'local authorities', 'domains', 'currency', 'tenancy'] },
+            { label: 'Module registry & features', href: '/admin/modules', icon: 'Layers', section: 'Platform settings', isPrimary: false, keywords: ['modules', 'licensing', 'activation', 'tenant'] },
+            { label: 'Audit trail & integrity', href: '/admin/audit', icon: 'History', section: 'Governance', isPrimary: true, keywords: ['audit', 'sha-256', 'tamper-evident', 'logs'] },
         ],
     },
 ];

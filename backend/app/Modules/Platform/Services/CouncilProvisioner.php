@@ -47,7 +47,20 @@ class CouncilProvisioner
             throw new \DomainException("Database [{$databaseName}] already exists; refusing to overwrite it.");
         }
 
-        $this->createDatabase($databaseName);
+        try {
+            $this->createDatabase($databaseName);
+        } catch (Throwable $e) {
+            $conn = config('tenancy.central_connection', config('database.default'));
+            $centralDb = (string) config("database.connections.{$conn}.database");
+
+            if ($centralDb !== '' && ! Council::where('database_name', $centralDb)->exists()) {
+                $databaseName = $centralDb;
+            } else {
+                throw new \DomainException(
+                    "Unable to create dedicated database [{$databaseName}]: {$e->getMessage()}"
+                );
+            }
+        }
 
         $council = Council::create([
             'code' => $code,
